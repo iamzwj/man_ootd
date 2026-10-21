@@ -1,6 +1,6 @@
 """On-demand public-image discovery. Stores URLs in bounded RAM; never stores image files."""
 import concurrent.futures as cf
-import hashlib, html, json, os, re, threading, time
+import hashlib, html, json, os, re, threading, time, subprocess
 from pathlib import Path
 import mimetypes
 from collections import OrderedDict
@@ -32,6 +32,11 @@ STYLE=re.compile(r'\b(?:outfit|outfits|streetwear|menswear|casual|cityboy|gorpco
 SCENES={'酒吧夜色':r'bar|night|drink|酒吧','城市街拍':r'street|urban|city|街','海边日落':r'beach|sea|ocean|summer|海','咖啡馆':r'cafe|café|coffee|咖啡','公园绿地':r'park|picnic|forest|garden|公园','天台屋顶':r'rooftop|roof|天台|屋顶','室内光影':r'window|indoor|bedroom|room|窗|室内','旅行途中':r'travel|train|journey|trip|旅行'}
 POOL=cf.ThreadPoolExecutor(max_workers=6)
 CACHE=OrderedDict();LOCK=threading.Lock();GATE=threading.BoundedSemaphore(4)
+
+def read_public(url):
+ result=subprocess.run(['curl','--fail','--silent','--show-error','--connect-timeout','5','--max-time','10',url],capture_output=True,timeout=11,check=True)
+ if len(result.stdout)>4_000_000:raise ValueError('response too large')
+ return result.stdout
 
 def source(url):
  try:
@@ -90,10 +95,8 @@ def query(job):
  url='https://www.bing.com/images/async?'+params
  request=Request(url,headers={'User-Agent':'Mozilla/5.0','Accept-Language':'en-US,en;q=0.8'})
  try:
-  with urlopen(request,timeout=9) as r:
-   if r.status!=200:raise OSError('upstream unavailable')
-   raw=r.read(4_000_001)
-   if len(raw)>4_000_000:raise OSError('response too large')
+  raw=read_public(url)
+  if len(raw)>4_000_000:raise OSError('response too large')
   text=raw.decode('utf-8','replace')
   if re.search(r'captcha|Our systems have detected unusual traffic',text,re.I):raise OSError('source unavailable')
   result=parse_images(text,ch,cat)
@@ -115,7 +118,7 @@ def flickr(job,cursor):
  if cursor>=16:query_tags.append(['portrait','candid','film','lifestyle','summer','sunset','photography','35mm'][(cursor//16-1)%8])
  url='https://www.flickr.com/services/feeds/photos_public.gne?'+urlencode({'format':'json','nojsoncallback':1,'tags':','.join(query_tags),'tagmode':'all'},quote_via=quote)
  try:
-  with urlopen(Request(url,headers={'User-Agent':'Mozilla/5.0'}),timeout=9) as r:data=json.loads(r.read(2_000_000))
+  data=json.loads(read_public(url))
   result=[]
   for row in data.get('items',[]):
    text=' '.join([row.get('title',''),row.get('tags',''),row.get('description','')]);image=row.get('media',{}).get('m','');page_url=row.get('link','')
@@ -127,7 +130,7 @@ def flickr(job,cursor):
  except Exception:return [],False
 
 def discover(channel,category,cursor):
- jobs=plan(channel,category,cursor);tasks=[POOL.submit(query,j) for j in jobs]+[POOL.submit(flickr,j,cursor) for j in jobs];done,_=cf.wait(tasks,timeout=11)
+ jobs=plan(channel,category,cursor);tasks=[POOL.submit(query,j) for j in jobs]+[POOL.submit(flickr,j,cursor) for j in jobs];done,_=cf.wait(tasks,timeout=12)
  result={};successful=0
  for f in done:
   batch,ok=f.result();successful+=int(ok)
