@@ -34,7 +34,7 @@ POOL=cf.ThreadPoolExecutor(max_workers=6)
 CACHE=OrderedDict();LOCK=threading.Lock();GATE=threading.BoundedSemaphore(4)
 
 def read_public(url):
- result=subprocess.run(['curl','--fail','--silent','--show-error','--connect-timeout','5','--max-time','10',url],capture_output=True,timeout=11,check=True)
+ result=subprocess.run(['curl','--fail','--silent','--show-error','--connect-timeout','3','--max-time','5','--retry','1','--retry-delay','0','--retry-all-errors',url],capture_output=True,timeout=11,check=True)
  if len(result.stdout)>4_000_000:raise ValueError('response too large')
  return result.stdout
 
@@ -129,8 +129,52 @@ def flickr(job,cursor):
   return result,True
  except Exception:return [],False
 
+DUITANG_QUERIES={
+'简约干净':['男生简约穿搭','男生日常穿搭','男生干净穿搭','简约男装'],
+'日系 Cityboy':['日系男生穿搭','cityboy男生','日系男装','日系穿搭男'],
+'韩系休闲':['韩系男生穿搭','韩国男生穿搭','韩系男装','男生休闲穿搭'],
+'街头潮流':['男生街头穿搭','男生潮流穿搭','街头男装','男生宽松穿搭'],
+'复古美式':['男生复古穿搭','美式复古男生','阿美咔叽男','男生牛仔穿搭'],
+'运动休闲':['男生运动穿搭','男生运动休闲','男生卫衣穿搭','运动风男生'],
+'轻户外':['男生户外穿搭','山系穿搭男','男生冲锋衣穿搭','机能风男生'],
+'酒吧夜色':['男生酒吧拍照','男生夜晚氛围感','男生酒吧','男生夜景摄影'],
+'城市街拍':['男生街拍氛围感','男生街头摄影','男生夜景街拍','男生街拍'],
+'海边日落':['男生海边氛围感','男生海边摄影','男生海边日落','男生海边'],
+'咖啡馆':['男生咖啡馆拍照','男生咖啡店氛围感','男生咖啡馆','男生咖啡店'],
+'公园绿地':['男生公园拍照','男生草地摄影','男生树林氛围感','男生公园'],
+'天台屋顶':['男生天台拍照','男生天台氛围感','男生屋顶摄影','男生天台'],
+'室内光影':['男生室内光影','男生窗边摄影','男生室内氛围感','男生房间摄影'],
+'旅行途中':['男生旅行摄影','男生旅行氛围感','男生车窗摄影','男生旅行拍照']}
+def duitang(job,cursor):
+ ch,cat,_,page=job
+ # The cursor advances query variants and the provider's genuine start offset.
+ # Query and page are already determined by the shared pagination plan.
+ variant=TOPICS[ch][cat].index(job[2])
+ params=urlencode({'kw':DUITANG_QUERIES[cat][variant],'type':'feed','start':page*24,'limit':24},quote_via=quote)
+ url='https://www.duitang.com/napi/blog/list/by_search/?'+params
+ cachekey=('duitang',cat,variant,page)
+ with LOCK:
+  hit=CACHE.get(cachekey)
+  if hit and time.monotonic()-hit[0]<120:return hit[1],True
+ try:
+  raw=json.loads(read_public(url))
+  if raw.get('status')!=1:return [],False
+  rows=raw.get('data',{}).get('object_list',[]);result=[]
+  for row in rows:
+   p=row.get('photo') or {};image=p.get('path','');msg=row.get('msg','');w=p.get('width',0);h=p.get('height',0)
+   if row.get('short_video') or row.get('buyable') or p.get('aigc_label',-1)>0 or BAD.search(msg):continue
+   if not image.startswith('https://') or not re.fullmatch(r'(?:[a-z0-9-]+\.)*(?:dtstatic\.com|duitang\.com)',urlparse(image).hostname or ''):continue
+   if not w or not h or min(w,h)<280 or w/h>1.7 or w/h<.48:continue
+   uid=identity(image);result.append({'id':uid,'imageKey':uid,'image':image,'originalImage':image,'url':'https://www.duitang.com/blog/?id='+str(row['id']),'source':'堆糖','originalTitle':msg[:350],'title':cat+' · '+('日常搭配' if ch=='outfit' else '生活摄影'),'channel':ch,'category':cat,'tags':[],'width':w,'height':h,'collectedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())})
+  with LOCK:
+   CACHE[cachekey]=(time.monotonic(),result);CACHE.move_to_end(cachekey)
+   while len(CACHE)>128:CACHE.popitem(last=False)
+  return result,True
+ except Exception:return [],False
+
 def discover(channel,category,cursor):
- jobs=plan(channel,category,cursor);tasks=[POOL.submit(query,j) for j in jobs]+[POOL.submit(flickr,j,cursor) for j in jobs];done,_=cf.wait(tasks,timeout=12)
+ jobs=plan(channel,category,cursor);tasks=[POOL.submit(duitang,j,cursor) for j in jobs];done,pending=cf.wait(tasks,timeout=12)
+ for f in pending:f.cancel()
  result={};successful=0
  for f in done:
   batch,ok=f.result();successful+=int(ok)
