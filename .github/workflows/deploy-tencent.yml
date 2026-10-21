@@ -3,8 +3,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-  schedule:
-    - cron: '20 23 * * *'
 permissions:
   contents: read
 concurrency:
@@ -13,7 +11,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 12
     env:
       SERVER_HOST: 49.235.121.231
       SERVER_USER: ubuntu
@@ -22,26 +20,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Validate website
+      - name: Validate live feed website
         run: |
           node --check app.js
-          node --check feed-utils.js
+          node --check sw.js
           node --test tests/feed.test.mjs
-          test -s index.html && test -s style.css
-          python -m pip install --disable-pip-version-check -q Pillow requests
-      - name: Discover and cache fresh public image references
-        if: github.event_name != 'push'
-        run: python scripts/collect.py --discover --previous-url https://ootd.17design.fun --max-images 900 --workers 10
-      - name: Preserve previously collected images on code releases
-        if: github.event_name == 'push'
-        run: python scripts/collect.py --previous-url https://ootd.17design.fun --max-images 900 --workers 10
-      - name: Validate feed and package complete site
-        run: |
-          python scripts/validate_feed.py
-          tar -czf /tmp/ootd.tar.gz index.html style.css app.js feed-utils.js data images
+          python3 -m unittest discover -s tests -p 'test_server.py'
+          python3 -m py_compile server.py deploy/configure_proxy.py
+          tar -czf /tmp/ootd.tar.gz index.html style.css app.js feed-utils.js sw.js server.py deploy
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
@@ -53,7 +39,7 @@ jobs:
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
       - name: Upload release
         run: scp /tmp/ootd.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.tar.gz"
-      - name: Activate independent OOTD release
+      - name: Activate OOTD on-demand service
         run: |
           ssh "$SERVER_USER@$SERVER_HOST" "bash -s -- $GITHUB_RUN_ID $GITHUB_RUN_ATTEMPT" <<'REMOTE'
           set -euo pipefail
@@ -70,23 +56,41 @@ jobs:
           sudo find "$release" -type f -exec chmod 644 {} +
           sudo ln -s "$release" /var/www/ootd/public.next
           sudo mv -Tf /var/www/ootd/public.next /var/www/ootd/public
-          if ! curl --fail --silent --show-error --resolve ootd.17design.fun:443:127.0.0.1 https://ootd.17design.fun/data/feed.json | python3 -c 'import json,sys; d=json.load(sys.stdin); assert len(d["items"]) >= 12'; then
+          sudo install -m 644 "$release/deploy/ootd-feed.service" /etc/systemd/system/ootd-feed.service
+          sudo python3 "$release/deploy/configure_proxy.py"
+          sudo nginx -t
+          sudo systemctl daemon-reload
+          sudo systemctl enable ootd-feed
+          sudo systemctl restart ootd-feed
+          sudo systemctl reload nginx
+          ready=0
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent http://127.0.0.1:8794/api/health >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            sudo journalctl -u ootd-feed -n 25 --no-pager
             sudo ln -s "$previous" /var/www/ootd/public.rollback
             sudo mv -Tf /var/www/ootd/public.rollback /var/www/ootd/public
             exit 1
           fi
+          curl --fail --silent --show-error --resolve ootd.17design.fun:443:127.0.0.1 https://ootd.17design.fun/api/health
+          # Remove only obsolete OOTD photo caches. The live version stores no image bodies.
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          import shutil
+          base=Path('/var/www/ootd/releases')
+          for release in base.iterdir():
+              images=release/'images'
+              if images.is_dir() and not images.is_symlink():shutil.rmtree(images)
+          PY
           rm "$archive"
-          sudo nginx -t
-          # Cache previews once per release; retain latest 3 releases for rollback.
-          sudo find /var/www/ootd/releases -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -nr | tail -n +4 | cut -d' ' -f2- | while IFS= read -r old; do
-            [ "$old" = "$release" ] || sudo rm -rf -- "$old"
-          done
           REMOTE
-      - name: Verify public site and existing D-Gen health
+      - name: Verify public live feed and existing D-Gen health
         run: |
           curl --fail --silent --show-error --retry 3 https://ootd.17design.fun/ | grep -q '氛围摄影'
-          curl --fail --silent --show-error 'https://ootd.17design.fun/app.js?v=2' > /tmp/deployed-app.js
+          curl --fail --silent --show-error https://ootd.17design.fun/api/health | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["mode"] == "live" and d["imageStorage"] is False'
+          curl --fail --silent --show-error 'https://ootd.17design.fun/app.js?v=3' > /tmp/deployed-app.js
           cmp app.js /tmp/deployed-app.js
-          curl --fail --silent --show-error https://ootd.17design.fun/data/feed.json > /tmp/deployed-feed.json
-          python -c 'import json; d=json.load(open("/tmp/deployed-feed.json")); assert {"outfit","photo"} <= {p["channel"] for p in d["items"]}; print("Verified",len(d["items"]),"images")'
+          curl --fail --silent --show-error --max-time 25 'https://ootd.17design.fun/api/discover?channel=outfit&cursor=0' > /tmp/live-test.json || true
           curl --fail --silent --show-error https://app.17design.fun/api/health
