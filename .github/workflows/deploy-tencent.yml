@@ -50,7 +50,9 @@ jobs:
       - name: Upload release
         run: |
           scp /tmp/ootd.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.tar.gz"
-          scp /tmp/ootd-vision.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/vision-$GITHUB_RUN_ID.tar.gz"
+          if ! ssh "$SERVER_USER@$SERVER_HOST" 'test -s /var/lib/ootd/vision/vision.onnx && test -s /var/lib/ootd/vision/prompts.npy'; then
+            scp /tmp/ootd-vision.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/vision-$GITHUB_RUN_ID.tar.gz"
+          fi
       - name: Activate OOTD on-demand service
         run: |
           ssh "$SERVER_USER@$SERVER_HOST" "bash -s -- $GITHUB_RUN_ID $GITHUB_RUN_ATTEMPT" <<'REMOTE'
@@ -70,7 +72,9 @@ jobs:
           sudo mv -Tf /var/www/ootd/public.next /var/www/ootd/public
           free -m
           sudo install -d -m 755 /var/lib/ootd/vision
-          sudo tar -xzf "/home/ubuntu/man_ootd/vision-$run_id.tar.gz" -C /var/lib/ootd/vision --no-same-owner
+          if [ -f "/home/ubuntu/man_ootd/vision-$run_id.tar.gz" ]; then
+            sudo tar -xzf "/home/ubuntu/man_ootd/vision-$run_id.tar.gz" -C /var/lib/ootd/vision --no-same-owner
+          fi
           sudo chmod 644 /var/lib/ootd/vision/*
           if [ ! -x /opt/ootd-venv/bin/python ]; then
             sudo python3 -m venv /opt/ootd-venv || {
@@ -108,13 +112,13 @@ jobs:
               images=release/'images'
               if images.is_dir() and not images.is_symlink():shutil.rmtree(images)
           PY
-          rm "$archive" "/home/ubuntu/man_ootd/vision-$run_id.tar.gz"
+          rm -f "$archive" "/home/ubuntu/man_ootd/vision-$run_id.tar.gz"
           REMOTE
       - name: Verify public live feed and existing D-Gen health
         run: |
           curl --fail --silent --show-error --retry 3 https://ootd.17design.fun/ | grep -q '氛围摄影'
           curl --fail --silent --show-error https://ootd.17design.fun/api/health | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["mode"] == "live" and d["imageStorage"] is False'
-          curl --fail --silent --show-error 'https://ootd.17design.fun/app.js?v=3' > /tmp/deployed-app.js
+          curl --fail --silent --show-error 'https://ootd.17design.fun/app.js?v=4' > /tmp/deployed-app.js
           cmp app.js /tmp/deployed-app.js
           curl --fail --silent --show-error --max-time 40 'https://ootd.17design.fun/api/discover?channel=outfit&cursor=0' > /tmp/live-test.json
           python3 -c 'import json; d=json.load(open("/tmp/live-test.json")); print("Live images:",len(d["items"])); assert d["items"] and all(p.get("visualChecked") for p in d["items"])'
