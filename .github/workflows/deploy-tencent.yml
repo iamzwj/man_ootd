@@ -47,11 +47,24 @@ jobs:
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-      - name: Upload release
+      - name: Check server connection
+        timeout-minutes: 2
         run: |
-          scp /tmp/ootd.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.tar.gz"
-          if ! ssh "$SERVER_USER@$SERVER_HOST" 'test -s /var/lib/ootd/vision/vision.onnx && test -s /var/lib/ootd/vision/prompts.npy'; then
-            scp /tmp/ootd-vision.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/vision-$GITHUB_RUN_ID.tar.gz"
+          ssh -v -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 "$SERVER_USER@$SERVER_HOST" 'printf "SSH connected\n"; df -h /home/ubuntu/man_ootd /var/lib; ls -lh /var/lib/ootd/vision/ 2>/dev/null || true'
+      - name: Upload website release
+        timeout-minutes: 2
+        run: |
+          ls -lh /tmp/ootd.tar.gz /tmp/ootd-vision.tar.gz
+          scp -v -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 /tmp/ootd.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.tar.gz"
+      - name: Upload visual screening weights
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          if ssh -o BatchMode=yes -o ConnectTimeout=20 "$SERVER_USER@$SERVER_HOST" 'test -s /var/lib/ootd/vision/vision.onnx && test -s /var/lib/ootd/vision/prompts.npy'; then
+            echo "Reusing installed model"
+          else
+            rsync -tv --partial --append-verify --timeout=60 --info=progress2 -e 'ssh -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3' /tmp/ootd-vision.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/vision-model.tar.gz"
+            ssh -o BatchMode=yes -o ConnectTimeout=20 "$SERVER_USER@$SERVER_HOST" "cp /home/ubuntu/man_ootd/vision-model.tar.gz /home/ubuntu/man_ootd/vision-$GITHUB_RUN_ID.tar.gz"
           fi
       - name: Activate OOTD on-demand service
         run: |
@@ -103,7 +116,6 @@ jobs:
             exit 1
           fi
           curl --fail --silent --show-error --resolve ootd.17design.fun:443:127.0.0.1 https://ootd.17design.fun/api/health
-          # Remove only obsolete OOTD photo caches. The live version stores no image bodies.
           sudo python3 - <<'PY'
           from pathlib import Path
           import shutil
