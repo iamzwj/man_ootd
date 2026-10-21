@@ -177,56 +177,120 @@ def duitang(job,cursor):
   return result,True
  except Exception:return [],False
 
-STYLEHINT_STYLES={
- '日系 Cityboy':r'シティボーイ|cityboy|オーバーサイズ|ワイド|レイヤード',
- '韩系休闲':r'韓国|韓流|korean',
- '街头潮流':r'ストリート|street|スウェット|カーゴ',
- '复古美式':r'ヴィンテージ|ビンテージ|アメカジ|デニム|vintage',
- '运动休闲':r'スポーツ|スポーティ|トラック|ジャージ|sport',
- '轻户外':r'アウトドア|ハイキング|登山|ゴープ|outdoor',
- '简约干净':r'シンプル|きれいめ|ベーシック|ミニマル|simple|minimal'}
-STYLEHINT_SCENES={'酒吧夜色':r'バー|夜景|night|bar','城市街拍':r'街|ストリート|street|city','海边日落':r'海辺|ビーチ|夕日|beach|sunset','咖啡馆':r'カフェ|珈琲|cafe|coffee','公园绿地':r'公園|森林|park|forest','天台屋顶':r'屋上|rooftop','室内光影':r'室内|窓辺|window|indoor','旅行途中':r'旅行|旅先|電車|travel|train'}
+# Public domestic sources. Topic snapshots are finite; never invent pagination.
+PROVIDERS = ['堆糖', '图虫', '得物']
+OUTFIT_PATTERNS = {
+ '日系 Cityboy': r'日系|cityboy', '韩系休闲': r'韩系|韩国',
+ '复古美式': r'复古|美式|阿美咔叽', '运动休闲': r'运动|卫衣|球衣',
+ '轻户外': r'户外|山系|冲锋衣|机能', '街头潮流': r'街头|潮流|痞帅',
+ '简约干净': r'简约|干净|基础款|极简|日常穿搭|休闲穿搭|男生穿搭|男士穿搭'}
+DEWU_TOPICS = (2725304, 3553172, 3250259, 1343)
 
-def stylehint_category(caption,channel):
- patterns=STYLEHINT_STYLES if channel=='outfit' else STYLEHINT_SCENES
- return next((cat for cat,pattern in patterns.items() if re.search(pattern,caption,re.I)), '简约干净' if channel=='outfit' else None)
 
-def stylehint(channel,category,cursor):
- # A real public men's daily ranking; page and rank are supplied by StyleHint.
- cachekey=('stylehint',channel,category,cursor)
+def public_cached(key, fetch):
  with LOCK:
-  hit=CACHE.get(cachekey)
+  hit=CACHE.get(key)
   if hit and time.monotonic()-hit[0]<120:return hit[1],True
  try:
-  params=urlencode({'result_limit':36,'page':cursor+1,'option_gender':1,'ranking_manner':'daily_ranking','option_recency':1})
-  data=json.loads(read_public('https://www.stylehint.com/v2/jp/outfit?'+params))
-  if not isinstance(data.get('outfit_list'),list):return [],False
-  result=[]
-  for row in data['outfit_list']:
-   caption=str(row.get('caption') or '');cat=stylehint_category(caption,channel)
-   image=row.get('source_image_url') or '';outfit_id=count_value(row,'id_outfit');rank=count_value(row,'ranking_number')
-   if not cat or category!='全部' and category!=cat or not outfit_id or not rank:continue
-   if urlparse(image).scheme!='https' or urlparse(image).hostname!='api.stylehint.com':continue
-   if BAD.search(caption) or EXCLUDE_SUBJECT.search(caption):continue
-   uid=identity(image)
-   result.append({'id':uid,'imageKey':uid,'image':image,'originalImage':image,'url':'https://www.stylehint.com/jp/ja/outfit/'+str(outfit_id),'source':'StyleHint','ranking':{'name':'男装日榜','position':rank},'engagement':{'likes':None,'favorites':count_value(row,'star_count'),'views':None},'originalTitle':caption[:1000],'title':cat+' · '+('日常搭配' if channel=='outfit' else '生活摄影'),'channel':channel,'category':cat,'tags':[],'collectedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())})
-  # Never bypass the same subject screening used for Duitang.
-  candidates=result[:12]
-  checks=list(VISUAL_POOL.map(lambda p:visual_filter.accept(p['image'],read_image),candidates))
-  result=[{**p,'visualChecked':True} for p,ok in zip(candidates,checks) if ok]
+  rows=fetch()
   with LOCK:
-   CACHE[cachekey]=(time.monotonic(),result);CACHE.move_to_end(cachekey)
+   CACHE[key]=(time.monotonic(),rows);CACHE.move_to_end(key)
    while len(CACHE)>128:CACHE.popitem(last=False)
-  return result,True
+  return rows,True
  except Exception:return [],False
+
+
+def classify_caption(text, channel):
+ patterns=OUTFIT_PATTERNS if channel=='outfit' else SCENES
+ return next((cat for cat,pattern in patterns.items() if re.search(pattern,text,re.I)),None)
+
+
+def domestic_item(image, page, label, caption, tags, channel, category, width, height, metrics):
+ # All new sources require the existing visual model. Missing model fails closed.
+ if not visual_filter.ready() or BAD.search(caption) or EXCLUDE_SUBJECT.search(caption):return None
+ if not MALE.search(caption+' '+' '.join(tags)):return None
+ if channel=='outfit' and not STYLE.search(caption+' '+' '.join(tags)):return None
+ cat=classify_caption(caption+' '+' '.join(tags),channel)
+ if not cat or category!='全部' and cat!=category:return None
+ if not isinstance(width,int) or not isinstance(height,int) or min(width,height)<280 or not .48<=width/height<=1.7:return None
+ u=urlparse(image)
+ hosts={'图虫':('photo.tuchong.com',),'得物':('image-cdn.poizon.com','image-cdn.dewu.com','cdn.poizon.com','qiniu.dewucdn.com')}
+ if u.scheme!='https' or u.hostname not in hosts[label]:return None
+ uid=identity(image)
+ return {'id':uid,'imageKey':uid,'image':image,'originalImage':image,'url':page,'source':label,
+  'originalTitle':caption[:1000],'title':cat+' · '+('日常搭配' if channel=='outfit' else '生活摄影'),
+  'channel':channel,'category':cat,'tags':tags,'width':width,'height':height,'engagement':metrics,
+  'collectedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
+
+
+def screen_domestic(rows):
+ candidates=sorted(rows,key=heat_value,reverse=True)[:12]
+ checks=list(VISUAL_POOL.map(lambda p:visual_filter.accept(p['image'],read_image),candidates))
+ return [{**p,'visualChecked':True} for p,ok in zip(candidates,checks) if ok]
+
+
+def tuchong(channel,category,cursor):
+ def fetch():
+  # Search original posts, retaining provider page numbers and post URLs.
+  query='男生穿搭' if channel=='outfit' else '男生'
+  params=urlencode({'query':query,'page':cursor+1,'count':20})
+  data=json.loads(read_public('https://tuchong.com/rest/search/posts?'+params))
+  posts=data.get('data',{}).get('post_list')
+  if data.get('result')!='SUCCESS' or not isinstance(posts,list):raise ValueError('invalid tuchong response')
+  result=[]
+  for row in posts:
+   if row.get('type')!='multi-photo' or row.get('delete'):continue
+   page=row.get('url','');u=urlparse(page)
+   if u.scheme!='https' or not re.fullmatch(r'(?:[a-z0-9-]+\.)?tuchong\.com',u.hostname or '') or not re.fullmatch(r'/\d+/\d+/',u.path):continue
+   tags=[str(t.get('tag_name','')) for t in row.get('tags',[]) if not EXCLUDE_SUBJECT.search(str(t.get('tag_name','')))]
+   # Use tag names only; group descriptions are not evidence about this photograph.
+   caption=html.unescape(re.sub('<[^>]+>',' ',str(row.get('title',''))+' '+str(row.get('content',''))+' '+str(row.get('excerpt',''))))
+   metrics={'likes':count_value(row,'favorites'),'favorites':count_value(row,'collect_num'),'views':count_value(row,'views')}
+   for photo in row.get('images',[])[:3]:
+    uid=str(photo.get('user_id',''));iid=str(photo.get('img_id_str') or photo.get('img_id',''))
+    if not uid.isdigit() or not iid.isdigit():continue
+    item=domestic_item('https://photo.tuchong.com/'+uid+'/lr/'+iid+'.jpg',page,'图虫',caption,tags,channel,category,photo.get('width'),photo.get('height'),metrics)
+    if item:result.append(item)
+  return screen_domestic(result)
+ return public_cached(('tuchong',channel,category,cursor),fetch)
+
+
+def dewu(channel,category,cursor):
+ # Public SSR topic pages ignore lastId. Each topic is requested once per stream.
+ if channel!='outfit' or cursor>=len(DEWU_TOPICS):return [],True
+ def fetch():
+  text=read_public('https://m.dewu.com/h5-sociality/h5community/dongtai?tagId='+str(DEWU_TOPICS[cursor])).decode('utf-8')
+  match=re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>',text,re.S)
+  if not match:raise ValueError('dewu visitor page')
+  response=json.loads(match[1])['props']['pageProps']['getData']
+  if response.get('status')!=200:raise ValueError('dewu unavailable')
+  data=response['data']
+  if not isinstance(data.get('hotList'),list):raise ValueError('invalid dewu response')
+  result=[]
+  for row in data['hotList']:
+   feed=row.get('feed',{});content=feed.get('content',{});post_id=str(content.get('contentId',''))
+   if content.get('contentType')!=0 or not post_id.isdigit():continue
+   caption=str(content.get('title') or '')+' '+str(content.get('content') or '')
+   tags=[str(t.get('tagName','')) for t in content.get('label',{}).get('tags',[])]
+   counter=feed.get('counter',{})
+   metrics={'likes':count_value(counter,'lightNum'),'favorites':count_value(counter,'collectNum'),'views':count_value(counter,'readNum')}
+   # Exact share route used by the provider's own public page.
+   page='https://m.dewu.com/rn-activity/community-share?trendId='+post_id
+   for photo in content.get('media',{}).get('list',[])[:3]:
+    if photo.get('mediaType')!='img':continue
+    item=domestic_item(photo.get('url',''),page,'得物',caption,tags,channel,category,photo.get('width'),photo.get('height'),metrics)
+    if item:result.append(item)
+  return screen_domestic(result)
+ return public_cached(('dewu',channel,category,cursor),fetch)
 
 def discover(channel,category,cursor):
  jobs=plan(channel,category,cursor)
  tasks={POOL.submit(duitang,j,cursor):'堆糖' for j in jobs}
- tasks[POOL.submit(stylehint,channel,category,cursor)]='StyleHint'
+ tasks[POOL.submit(tuchong,channel,category,cursor)]='图虫'
+ if channel=='outfit' and cursor<len(DEWU_TOPICS):tasks[POOL.submit(dewu,channel,category,cursor)]='得物'
  done,pending=cf.wait(tasks,timeout=30)
  for f in pending:f.cancel()
- result={};statuses={'堆糖':False,'StyleHint':False}
+ result={};statuses={name:False for name in dict.fromkeys(tasks.values())}
  for f in done:
   try:batch,ok=f.result()
   except Exception:continue
@@ -240,7 +304,7 @@ class Handler(BaseHTTPRequestHandler):
   body=json.dumps(data,ensure_ascii=False,separators=(',',':')).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_GET(self):
   u=urlparse(self.path)
-  if u.path=='/api/health':return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'visualScreening':visual_filter.ready(),'version':'multi-source-heat-v1','providers':['堆糖','StyleHint']})
+  if u.path=='/api/health':return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'visualScreening':visual_filter.ready(),'version':'domestic-sources-v2','providers':PROVIDERS})
   if u.path!='/api/discover':
    name='index.html' if u.path=='/' else u.path.lstrip('/')
    if name not in {'index.html','app.js','style.css','feed-utils.js','sw.js'}:return self.send(404,{'error':'not_found'})
