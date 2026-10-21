@@ -167,7 +167,8 @@ def duitang(job,cursor):
  # The cursor advances query variants and the provider's genuine start offset.
  # Query and page are already determined by the shared pagination plan.
  variant=TOPICS[ch][cat].index(job[2])
- params=urlencode({'kw':DUITANG_QUERIES[cat][variant],'type':'feed','start':page*24,'limit':24},quote_via=quote)
+ search=DUITANG_QUERIES[cat][variant]+(' 真人街拍' if ch=='outfit' else ' 真人摄影')
+ params=urlencode({'kw':search,'type':'feed','start':page*24,'limit':24},quote_via=quote)
  url='https://www.duitang.com/napi/blog/list/by_search/?'+params
  cachekey=('duitang',cat,variant,page)
  with LOCK:
