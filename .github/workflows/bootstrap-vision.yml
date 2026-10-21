@@ -1,0 +1,62 @@
+name: Install verified OOTD visual weights
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/bootstrap-vision.yml']
+permissions:
+  contents: read
+concurrency:
+  group: ootd-vision-bootstrap
+  cancel-in-progress: false
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SERVER_HOST: 49.235.121.231
+      SERVER_USER: ubuntu
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare trusted checksum and text vectors
+        run: |
+          python3 -m venv /tmp/vision-env
+          /tmp/vision-env/bin/pip -q install onnxruntime numpy Pillow tokenizers
+          /tmp/vision-env/bin/python deploy/prepare_vision.py /tmp/vision-model
+          sha256sum /tmp/vision-model/vision.onnx
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SERVER_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '\nHost *\n  BatchMode yes\n  ConnectTimeout 20\n  ServerAliveInterval 15\n  ServerAliveCountMax 3\n' > ~/.ssh/config
+      - name: Download weights at server and verify official SHA256
+        run: |
+          scp /tmp/vision-model/prompts.npy "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/prompts-$GITHUB_RUN_ID.npy"
+          digest=$(sha256sum /tmp/vision-model/vision.onnx | cut -d ' ' -f1)
+          ssh "$SERVER_USER@$SERVER_HOST" "bash -s -- $digest $GITHUB_RUN_ID" <<'REMOTE'
+          set -euo pipefail
+          digest="$1"; run="$2"
+          model="/home/ubuntu/man_ootd/bootstrap-$run.onnx"
+          asset='Xenova/clip-vit-base-patch32/resolve/6ef1ebc8b0766a7a8d11b146462c99cdf74dd22d/onnx/vision_model_quantized.onnx'
+          for host in hf-mirror.com huggingface.co; do
+            echo "Downloading pinned model from $host"
+            if curl --fail --location --connect-timeout 15 --max-time 180 --speed-limit 100000 --speed-time 25 --output "$model" "https://$host/$asset"; then
+              if printf '%s  %s\n' "$digest" "$model" | sha256sum -c -; then
+                sudo install -d -m 755 /var/lib/ootd/vision
+                sudo install -m 644 "$model" /var/lib/ootd/vision/vision.onnx.next
+                sudo install -m 644 "/home/ubuntu/man_ootd/prompts-$run.npy" /var/lib/ootd/vision/prompts.npy.next
+                sudo mv /var/lib/ootd/vision/vision.onnx.next /var/lib/ootd/vision/vision.onnx
+                sudo mv /var/lib/ootd/vision/prompts.npy.next /var/lib/ootd/vision/prompts.npy
+                rm -f "$model" "/home/ubuntu/man_ootd/prompts-$run.npy"
+                echo 'Verified visual weights installed'
+                exit 0
+              fi
+            fi
+          done
+          echo 'Both download routes failed; serving release unchanged'
+          exit 1
+          REMOTE
