@@ -1,0 +1,51 @@
+name: Probe free OOTD sources
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/probe-free-sources.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure SSH
+        env:
+          KEY: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
+          HOSTS: ${{ secrets.SERVER_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$HOSTS" > ~/.ssh/known_hosts
+      - name: Inspect public source responses from production server
+        run: |
+          ssh -o BatchMode=yes -o ConnectTimeout=20 ubuntu@49.235.121.231 python3 - <<'PY'
+          import concurrent.futures as cf,json,re,subprocess
+          urls={
+            'WEAR':'https://wear.jp/men-ranking/',
+            'BEAMS':'https://www.beams.co.jp/styling/?sex=M&label=0011',
+            'StyleHint':'https://www.stylehint.com/us/en/',
+            'Flickr':'https://www.flickr.com/services/feeds/photos_public.gne?format=json&nojsoncallback=1&tags=man,street&tagmode=all',
+            'FlickrSearch':'https://www.flickr.com/search/?text=asian%20man&sort=interestingness-desc',
+            'Reddit':'https://www.reddit.com/r/mensfashion/top.json?t=month&limit=10',
+            'Unsplash':'https://unsplash.com/napi/search/photos?query=asian%20man&order_by=popular&per_page=5',
+            'Duitang':'https://www.duitang.com/napi/blog/list/by_search/?kw=men&type=feed&start=0&limit=3&include_fields=like_count,favorite_count'}
+          def probe(pair):
+            name,url=pair
+            try:
+              r=subprocess.run(['curl','-L','-sS','--connect-timeout','5','--max-time','18','-A','Mozilla/5.0',url],capture_output=True,timeout=20)
+              s=r.stdout.decode('utf-8','replace')
+              out={'source':name,'bytes':len(s),'title':re.findall(r'<title[^>]*>(.*?)</title>',s,re.S)[:1]}
+              try:
+                d=json.loads(s);out['keys']=list(d)[:15];out['sample']=str((d.get('results') or d.get('items') or d.get('data',{}).get('object_list') or [d])[0])[:3200]
+              except Exception:
+                patterns=[r'.{0,150}/styling/.{0,700}',r'.{0,150}images.wear.{0,700}',r'.{0,150}coordinate/.{0,700}',r'.{0,100}like_count.{0,300}',r'.{0,100}favorite.{0,300}',r'.{0,100}photo-models.{0,400}']
+                out['snippets']=[x for p in patterns for x in re.findall(p,s,re.I)[:3]]
+                out['scripts']=re.findall(r'<script[^>]+src=["\']([^"\']+)',s)[:12]
+              return out
+            except Exception as e:return {'source':name,'error':str(e)}
+          with cf.ThreadPoolExecutor(max_workers=8) as pool:
+            for result in pool.map(probe,urls.items()):print(json.dumps(result,ensure_ascii=False),flush=True)
+          PY
