@@ -1,0 +1,60 @@
+name: Deploy OOTD to Tencent Cloud
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ootd-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SERVER_HOST: 49.235.121.231
+      SERVER_USER: ubuntu
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and package static site
+        run: |
+          node --check app.js
+          test -s index.html && test -s style.css
+          tar -czf /tmp/ootd.tar.gz index.html style.css app.js
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SERVER_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - name: Upload release
+        run: scp /tmp/ootd.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/$GITHUB_SHA.tar.gz"
+      - name: Activate independent OOTD release
+        run: |
+          ssh "$SERVER_USER@$SERVER_HOST" "bash -s -- $GITHUB_SHA" <<'REMOTE'
+          set -euo pipefail
+          revision="$1"
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          exec 9>/home/ubuntu/man_ootd/deploy.lock
+          flock -x 9
+          release="/var/www/ootd/releases/$revision"
+          sudo install -d -m 755 "$release"
+          sudo tar -xzf "/home/ubuntu/man_ootd/$revision.tar.gz" -C "$release" --no-same-owner
+          sudo chmod 644 "$release/"*
+          sudo ln -s "$release" /var/www/ootd/public.next
+          sudo mv -Tf /var/www/ootd/public.next /var/www/ootd/public
+          rm "/home/ubuntu/man_ootd/$revision.tar.gz"
+          sudo nginx -t
+          curl --fail --silent --show-error --resolve ootd.17design.fun:443:127.0.0.1 https://ootd.17design.fun/ | grep -q 'OOTD · 年轻人的日常衣橱'
+          REMOTE
+      - name: Verify public HTTPS and existing D-Gen health
+        run: |
+          curl --fail --silent --show-error --retry 3 https://ootd.17design.fun/ | grep -q 'OOTD · 年轻人的日常衣橱'
+          curl --fail --silent --show-error https://ootd.17design.fun/app.js > /tmp/deployed-app.js
+          cmp app.js /tmp/deployed-app.js
+          curl --fail --silent --show-error https://ootd.17design.fun/style.css > /tmp/deployed-style.css
+          cmp style.css /tmp/deployed-style.css
+          curl --fail --silent --show-error https://app.17design.fun/api/health
