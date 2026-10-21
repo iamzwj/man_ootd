@@ -16,6 +16,8 @@ class DiscoveryTests(unittest.TestCase):
   for category in ['全部','韩系休闲']:
    jobs=[tuple(server.plan('outfit',category,c)) for c in range(100)]
    self.assertEqual(len(set(jobs)),100)
+ def test_scroll_reaches_new_provider_page_without_waiting_all_styles(self):
+  self.assertGreater(server.plan('outfit','全部',2)[0][3],server.plan('outfit','全部',0)[0][3])
  def test_rejects_product_unknown_sites_and_ai(self):
   raw=self.raw('Korean men casual outfit')+self.raw('Korean woman outfit')+self.raw('AI generated men outfit')+self.raw('men casual outfit',page='https://example.com/x')
   self.assertEqual(len(server.parse_images(raw,'outfit','韩系休闲')),1)

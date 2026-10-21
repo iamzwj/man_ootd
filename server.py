@@ -89,7 +89,7 @@ def plan(channel,category,cursor):
  cats=list(TOPICS[channel]) if category=='全部' else [category]
  jobs=[]
  for k in range(2):
-  n=cursor*2+k;cat=cats[n%len(cats)];variant=(n//len(cats))%4;page=n//(len(cats)*4)
+  n=cursor*2+k;cat=cats[n%len(cats)];variant=(n//len(cats))%4;page=cursor//2
   jobs.append((channel,cat,TOPICS[channel][cat][variant],page))
  return jobs
 
@@ -180,7 +180,7 @@ def duitang(job,cursor):
  # Query and page are already determined by the shared pagination plan.
  variant=TOPICS[ch][cat].index(job[2])
  search=DUITANG_QUERIES[cat][variant]
- params=urlencode({'kw':search,'type':'feed','start':page*24,'limit':24},quote_via=quote)
+ params=urlencode({'kw':search,'type':'feed','start':page*12,'limit':12},quote_via=quote)
  url='https://www.duitang.com/napi/blog/list/by_search/?'+params
  cachekey=('duitang',cat,variant,page)
  with LOCK:
