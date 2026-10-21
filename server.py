@@ -3,6 +3,7 @@ import concurrent.futures as cf
 import hashlib, html, json, os, re, threading, time, subprocess
 from pathlib import Path
 import mimetypes
+import visual_filter
 from collections import OrderedDict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlencode, urlparse, quote
@@ -31,11 +32,17 @@ MALE=re.compile(r'\b(?:men|man|mens|male|boy|boys|menswear|cityboy|gorpcore)\b|�
 STYLE=re.compile(r'\b(?:outfit|outfits|streetwear|menswear|casual|cityboy|gorpcore|fashion|clothing)\b|穿搭|コーデ|스타일',re.I)
 SCENES={'酒吧夜色':r'bar|night|drink|酒吧','城市街拍':r'street|urban|city|街','海边日落':r'beach|sea|ocean|summer|海','咖啡馆':r'cafe|café|coffee|咖啡','公园绿地':r'park|picnic|forest|garden|公园','天台屋顶':r'rooftop|roof|天台|屋顶','室内光影':r'window|indoor|bedroom|room|窗|室内','旅行途中':r'travel|train|journey|trip|旅行'}
 POOL=cf.ThreadPoolExecutor(max_workers=6)
-CACHE=OrderedDict();LOCK=threading.Lock();GATE=threading.BoundedSemaphore(4)
+CACHE=OrderedDict();LOCK=threading.Lock();GATE=threading.BoundedSemaphore(2)
+VISUAL_POOL=cf.ThreadPoolExecutor(max_workers=4)
 
 def read_public(url):
  result=subprocess.run(['curl','--fail','--silent','--show-error','--connect-timeout','3','--max-time','5','--retry','1','--retry-delay','0','--retry-all-errors',url],capture_output=True,timeout=11,check=True)
  if len(result.stdout)>4_000_000:raise ValueError('response too large')
+ return result.stdout
+
+def read_image(url):
+ result=subprocess.run(['curl','--fail','--silent','--show-error','--connect-timeout','2','--max-time','3','--max-filesize','4000000',url],capture_output=True,timeout=4,check=True)
+ if len(result.stdout)>4_000_000:raise ValueError('image too large')
  return result.stdout
 
 def source(url):
@@ -100,6 +107,10 @@ def query(job):
   text=raw.decode('utf-8','replace')
   if re.search(r'captcha|Our systems have detected unusual traffic',text,re.I):raise OSError('source unavailable')
   result=parse_images(text,ch,cat)
+  if visual_filter.ready():
+   candidates=result[:12]
+   checks=list(VISUAL_POOL.map(lambda p:visual_filter.accept(p['image'],read_image),candidates))
+   result=[{**p,'visualChecked':True} for p,ok in zip(candidates,checks) if ok]
   with LOCK:
    CACHE[cachekey]=(time.monotonic(),result);CACHE.move_to_end(cachekey)
    while len(CACHE)>128:CACHE.popitem(last=False)
@@ -157,7 +168,8 @@ def eligible_person(row,channel,category):
  if BAD.search(text) or EXCLUDE_SUBJECT.search(text):return False
  # Require affirmative male and real-photography evidence from the original post,
  # never from our search query or a generated category label.
- if not PERSON_MALE.search(caption) or not REAL_PHOTO.search(text):return False
+ if not PERSON_MALE.search(caption) and not visual_filter.ready():return False
+ if not REAL_PHOTO.search(text) and not visual_filter.ready():return False
  if channel=='outfit' and not STYLE.search(caption):return False
  if channel=='photo' and not re.search(SCENES[category],text,re.I):return False
  return True
@@ -167,7 +179,7 @@ def duitang(job,cursor):
  # The cursor advances query variants and the provider's genuine start offset.
  # Query and page are already determined by the shared pagination plan.
  variant=TOPICS[ch][cat].index(job[2])
- search=DUITANG_QUERIES[cat][variant]+(' 真人街拍' if ch=='outfit' else ' 真人摄影')
+ search=DUITANG_QUERIES[cat][variant]
  params=urlencode({'kw':search,'type':'feed','start':page*24,'limit':24},quote_via=quote)
  url='https://www.duitang.com/napi/blog/list/by_search/?'+params
  cachekey=('duitang',cat,variant,page)
@@ -184,6 +196,10 @@ def duitang(job,cursor):
    if not image.startswith('https://') or not re.fullmatch(r'(?:[a-z0-9-]+\.)*(?:dtstatic\.com|duitang\.com)',urlparse(image).hostname or ''):continue
    if not w or not h or min(w,h)<280 or w/h>1.7 or w/h<.48:continue
    uid=identity(image);result.append({'id':uid,'imageKey':uid,'image':image,'originalImage':image,'url':'https://www.duitang.com/blog/?id='+str(row['id']),'source':'堆糖','originalTitle':msg[:350],'title':cat+' · '+('日常搭配' if ch=='outfit' else '生活摄影'),'channel':ch,'category':cat,'tags':[],'width':w,'height':h,'collectedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())})
+  if visual_filter.ready():
+   candidates=result[:12]
+   checks=list(VISUAL_POOL.map(lambda p:visual_filter.accept(p['image'],read_image),candidates))
+   result=[{**p,'visualChecked':True} for p,ok in zip(candidates,checks) if ok]
   with LOCK:
    CACHE[cachekey]=(time.monotonic(),result);CACHE.move_to_end(cachekey)
    while len(CACHE)>128:CACHE.popitem(last=False)
@@ -191,7 +207,7 @@ def duitang(job,cursor):
  except Exception:return [],False
 
 def discover(channel,category,cursor):
- jobs=plan(channel,category,cursor);tasks=[POOL.submit(duitang,j,cursor) for j in jobs];done,pending=cf.wait(tasks,timeout=12)
+ jobs=plan(channel,category,cursor);tasks=[POOL.submit(duitang,j,cursor) for j in jobs];done,pending=cf.wait(tasks,timeout=30)
  for f in pending:f.cancel()
  result={};successful=0
  for f in done:
@@ -204,7 +220,7 @@ class Handler(BaseHTTPRequestHandler):
   body=json.dumps(data,ensure_ascii=False,separators=(',',':')).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_GET(self):
   u=urlparse(self.path)
-  if u.path=='/api/health':return self.send(200,{'ok':True,'mode':'live','imageStorage':False})
+  if u.path=='/api/health':return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'visualScreening':visual_filter.ready()})
   if u.path!='/api/discover':
    name='index.html' if u.path=='/' else u.path.lstrip('/')
    if name not in {'index.html','app.js','style.css','feed-utils.js','sw.js'}:return self.send(404,{'error':'not_found'})

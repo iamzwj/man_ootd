@@ -1,5 +1,5 @@
 [Unit]
-Description=OOTD on-demand image discovery (metadata only)
+Description=OOTD on-demand image discovery (visual screening, no photo storage)
 After=network-online.target
 Wants=network-online.target
 [Service]
@@ -8,14 +8,15 @@ User=ubuntu
 Group=ubuntu
 Environment=PORT=8794
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/usr/bin/python3 /var/www/ootd/public/server.py
+Environment=OOTD_VISION_ROOT=/var/lib/ootd/vision
+ExecStart=/opt/ootd-venv/bin/python /var/www/ootd/public/server.py
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-MemoryMax=100M
-TasksMax=48
+MemoryMax=600M
+TasksMax=96
 [Install]
 WantedBy=multi-user.target

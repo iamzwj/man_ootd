@@ -11,7 +11,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     env:
       SERVER_HOST: 49.235.121.231
       SERVER_USER: ubuntu
@@ -20,6 +20,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: actions/cache@v4
+        with:
+          path: /tmp/ootd-vision-model
+          key: ootd-clip-6ef1ebc-v1
+      - name: Prepare visual screening model
+        run: |
+          python3 -m venv /tmp/ootd-build-venv
+          /tmp/ootd-build-venv/bin/pip -q install onnxruntime numpy Pillow tokenizers
+          /tmp/ootd-build-venv/bin/python deploy/prepare_vision.py /tmp/ootd-vision-model
+          tar -czf /tmp/ootd-vision.tar.gz -C /tmp/ootd-vision-model vision.onnx prompts.npy
       - name: Validate live feed website
         run: |
           node --check app.js
@@ -27,7 +37,7 @@ jobs:
           node --test tests/feed.test.mjs
           python3 -m unittest discover -s tests -p 'test_server.py'
           python3 -m py_compile server.py deploy/configure_proxy.py
-          tar -czf /tmp/ootd.tar.gz index.html style.css app.js feed-utils.js sw.js server.py deploy
+          tar -czf /tmp/ootd.tar.gz index.html style.css app.js feed-utils.js sw.js server.py visual_filter.py deploy
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
@@ -38,7 +48,9 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
       - name: Upload release
-        run: scp /tmp/ootd.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.tar.gz"
+        run: |
+          scp /tmp/ootd.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.tar.gz"
+          scp /tmp/ootd-vision.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/vision-$GITHUB_RUN_ID.tar.gz"
       - name: Activate OOTD on-demand service
         run: |
           ssh "$SERVER_USER@$SERVER_HOST" "bash -s -- $GITHUB_RUN_ID $GITHUB_RUN_ATTEMPT" <<'REMOTE'
@@ -56,6 +68,18 @@ jobs:
           sudo find "$release" -type f -exec chmod 644 {} +
           sudo ln -s "$release" /var/www/ootd/public.next
           sudo mv -Tf /var/www/ootd/public.next /var/www/ootd/public
+          free -m
+          sudo install -d -m 755 /var/lib/ootd/vision
+          sudo tar -xzf "/home/ubuntu/man_ootd/vision-$run_id.tar.gz" -C /var/lib/ootd/vision --no-same-owner
+          sudo chmod 644 /var/lib/ootd/vision/*
+          if [ ! -x /opt/ootd-venv/bin/python ]; then
+            sudo python3 -m venv /opt/ootd-venv || {
+              sudo apt-get update -qq
+              sudo apt-get install -y python3-venv
+              sudo python3 -m venv /opt/ootd-venv
+            }
+          fi
+          sudo /opt/ootd-venv/bin/pip -q install --disable-pip-version-check onnxruntime numpy Pillow
           sudo install -m 644 "$release/deploy/ootd-feed.service" /etc/systemd/system/ootd-feed.service
           sudo python3 "$release/deploy/configure_proxy.py"
           sudo nginx -t
@@ -84,7 +108,7 @@ jobs:
               images=release/'images'
               if images.is_dir() and not images.is_symlink():shutil.rmtree(images)
           PY
-          rm "$archive"
+          rm "$archive" "/home/ubuntu/man_ootd/vision-$run_id.tar.gz"
           REMOTE
       - name: Verify public live feed and existing D-Gen health
         run: |
@@ -92,5 +116,6 @@ jobs:
           curl --fail --silent --show-error https://ootd.17design.fun/api/health | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["mode"] == "live" and d["imageStorage"] is False'
           curl --fail --silent --show-error 'https://ootd.17design.fun/app.js?v=3' > /tmp/deployed-app.js
           cmp app.js /tmp/deployed-app.js
-          curl --fail --silent --show-error --max-time 25 'https://ootd.17design.fun/api/discover?channel=outfit&cursor=0' > /tmp/live-test.json || true
+          curl --fail --silent --show-error --max-time 40 'https://ootd.17design.fun/api/discover?channel=outfit&cursor=0' > /tmp/live-test.json
+          python3 -c 'import json; d=json.load(open("/tmp/live-test.json")); print("Live images:",len(d["items"])); assert d["items"] and all(p.get("visualChecked") for p in d["items"])'
           curl --fail --silent --show-error https://app.17design.fun/api/health
