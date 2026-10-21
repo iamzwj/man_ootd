@@ -22,13 +22,11 @@ jobs:
           ssh -o BatchMode=yes -o ConnectTimeout=20 ubuntu@49.235.121.231 python3 - <<'PY' > /tmp/source-capture.txt
           import json,subprocess,base64,zlib,concurrent.futures as cf
           urls=[
-          'https://www.stylehint.com/_next/static/PIEt3zab7_DEoIabjheG2/pages/_app.js',
-          'https://www.stylehint.com/_next/static/chunks/a4e206e93845969b5baf9b7281a3c1e2cd168c67.695c267cc2301e623537.js',
-          'https://www.beams.co.jp/styling/?sex=M',
-          'https://wear.jp/men-ranking/',
-          'https://www.flickr.com/services/feeds/photos_public.gne?format=json&nojsoncallback=1&tags=man,street&tagmode=all']
+          'https://www.stylehint.com/v2/jp/outfit?result_limit=20&page=1&option_gender=1&ranking_manner=daily_ranking&option_recency=1',
+          'https://www.stylehint.com/v2/jp/outfit?result_limit=20&page=2&option_gender=1&ranking_manner=daily_ranking&option_recency=1',
+          'https://api.stylehint.com/v2/jp/outfit?result_limit=20&page=1&option_gender=1&ranking_manner=daily_ranking&option_recency=1']
           def get(u):
-            r=subprocess.run(['curl','--http1.1','-L','-sS','--connect-timeout','8','--max-time','30','-A','Mozilla/5.0',u],capture_output=True,timeout=32)
+            r=subprocess.run(['curl','--http1.1','-L','-sS','--connect-timeout','8','--max-time','30','-A','Mozilla/5.0','-H','Accept-Region: jp','-H','Accept-Language: ja',u],capture_output=True,timeout=32)
             return {'url':u,'error':r.stderr.decode()[:300],'body':base64.b64encode(zlib.compress(r.stdout)).decode()}
           with cf.ThreadPoolExecutor(max_workers=5) as pool:
             for r in pool.map(get,urls):print(json.dumps(r),flush=True)
