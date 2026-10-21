@@ -5,6 +5,13 @@ import server
 class DiscoveryTests(unittest.TestCase):
  def raw(self,title,image='https://i.pinimg.com/originals/ab/cd/ef/abcdef1234567890abcdef1234567890.jpg',page='https://www.pinterest.com/pin/123/'):
   return '<a m="'+html.escape(json.dumps({'t':title,'murl':image,'purl':page}),quote=True)+'">'
+ def test_real_men_require_positive_original_post_evidence(self):
+  for caption in ['女生街拍穿搭','男生卡通穿搭','男生动漫写真穿搭','男生穿搭','街拍穿搭','男生AI摄影穿搭','男生真人大胡子穿搭']:
+   self.assertFalse(server.eligible_person({'msg':caption},'outfit','简约干净'),caption)
+  self.assertTrue(server.eligible_person({'msg':'男生日常穿搭 真人街拍'},'outfit','简约干净'))
+  self.assertFalse(server.eligible_person({'msg':'男生真人穿搭','album':{'name':'二次元'}},'outfit','简约干净'))
+  self.assertTrue(server.eligible_person({'msg':'男生海边胶片摄影'},'photo','海边日落'))
+  self.assertFalse(server.eligible_person({'msg':'男生室内摄影'},'photo','海边日落'))
  def test_cursor_advances_real_query_or_page(self):
   for category in ['全部','韩系休闲']:
    jobs=[tuple(server.plan('outfit',category,c)) for c in range(100)]

@@ -145,6 +145,23 @@ DUITANG_QUERIES={
 '天台屋顶':['男生天台拍照','男生天台氛围感','男生屋顶摄影','男生天台'],
 '室内光影':['男生室内光影','男生窗边摄影','男生室内氛围感','男生房间摄影'],
 '旅行途中':['男生旅行摄影','男生旅行氛围感','男生车窗摄影','男生旅行拍照']}
+# Search relevance is not evidence of the subject. Unknown captions fail closed.
+EXCLUDE_SUBJECT=re.compile(r'女|卡通|动漫|动画|漫画|二次元|插画|手绘|绘画|绘本|同人|乙游|游戏|建模|渲染|虚拟|纸片|男头|头像|情侣|情头|壁纸|表情包|Q版|正太|少年感插图|AI|大胡子|胡须|胡子|老年|大叔|中年|beard|anime|cartoon|illustration|drawing|render|female|woman|women|girl|avatar',re.I)
+REAL_PHOTO=re.compile(r'真人|实拍|摄影|写真|街拍|自拍|胶片|拍照|拍摄|生活照|日常照|人像|photograph|portrait|street.?snap|real.?photo',re.I)
+PERSON_MALE=re.compile(r'男生|男士|男性|男孩|男模|男装|男友|男人|menswear|\b(?:men|man|male|boy)\b',re.I)
+def eligible_person(row,channel,category):
+ caption=str(row.get('msg') or '')
+ album=row.get('album') or {}
+ tags=row.get('tags') or []
+ text=caption+' '+json.dumps(tags,ensure_ascii=False)+' '+str(album.get('name',''))
+ if BAD.search(text) or EXCLUDE_SUBJECT.search(text):return False
+ # Require affirmative male and real-photography evidence from the original post,
+ # never from our search query or a generated category label.
+ if not PERSON_MALE.search(caption) or not REAL_PHOTO.search(text):return False
+ if channel=='outfit' and not STYLE.search(caption):return False
+ if channel=='photo' and not re.search(SCENES[category],text,re.I):return False
+ return True
+
 def duitang(job,cursor):
  ch,cat,_,page=job
  # The cursor advances query variants and the provider's genuine start offset.
@@ -162,7 +179,7 @@ def duitang(job,cursor):
   rows=raw.get('data',{}).get('object_list',[]);result=[]
   for row in rows:
    p=row.get('photo') or {};image=p.get('path','');msg=row.get('msg','');w=p.get('width',0);h=p.get('height',0)
-   if row.get('short_video') or row.get('buyable') or p.get('aigc_label',-1)>0 or BAD.search(msg):continue
+   if row.get('short_video') or row.get('buyable') or p.get('aigc_label',-1)>0 or not eligible_person(row,ch,cat):continue
    if not image.startswith('https://') or not re.fullmatch(r'(?:[a-z0-9-]+\.)*(?:dtstatic\.com|duitang\.com)',urlparse(image).hostname or ''):continue
    if not w or not h or min(w,h)<280 or w/h>1.7 or w/h<.48:continue
    uid=identity(image);result.append({'id':uid,'imageKey':uid,'image':image,'originalImage':image,'url':'https://www.duitang.com/blog/?id='+str(row['id']),'source':'堆糖','originalTitle':msg[:350],'title':cat+' · '+('日常搭配' if ch=='outfit' else '生活摄影'),'channel':ch,'category':cat,'tags':[],'width':w,'height':h,'collectedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())})
