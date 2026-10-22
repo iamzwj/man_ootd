@@ -5,6 +5,7 @@ from pathlib import Path
 import mimetypes
 import socket, ipaddress
 import visual_filter
+from html.parser import HTMLParser
 from collections import OrderedDict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlencode, urlparse, quote
@@ -42,8 +43,9 @@ def read_public(url):
  return result.stdout
 
 def read_image(url):
+ if (urlparse(url).hostname or '')=='hips.hearstchina.com':url=url.split('?')[0]+'?resize=500:*'
  if not public_url(url,resolve=True):raise ValueError('non-public image URL')
- result=subprocess.run(['curl','--http1.1','--fail','--silent','--show-error','--connect-timeout','2','--max-time','3','--max-filesize','4000000',url],capture_output=True,timeout=4,check=True)
+ result=subprocess.run(['curl','--http1.1','--fail','--silent','--show-error','--connect-timeout','2','--max-time','6','--max-filesize','4000000',quote(url,safe=':/?&=%*')],capture_output=True,timeout=7,check=True)
  if len(result.stdout)>4_000_000:raise ValueError('image too large')
  return result.stdout
 
@@ -286,7 +288,7 @@ PHOTO_QUERIES = {
  '黑白情绪': ['black and white man portrait photography', 'male monochrome cinematic portrait', '男生 黑白 情绪 写真'],
  **TOPICS['photo']}
 REVIEW_POLICY='domestic-clothed-v6'
-PROVIDERS = ['360图片 · 国内作品', '必应 · 国内作品', '堆糖', '图虫']
+PROVIDERS = ['360图片 · 国内作品', '必应 · 国内作品', '堆糖', '图虫', 'ELLEMEN公开作品']
 DOMESTIC_DOMAINS=('douyin.com','xiaohongshu.com','weibo.com','weibo.cn','zcool.com.cn','tuchong.com','poco.cn','duitang.com','ellemen.com','ellemen.com.cn','hearst.com.cn','gq.com.cn','vogue.com.cn','bazaarchina.com','sohu.com','sina.com.cn','sina.cn','baidu.com','163.com','qq.com')
 def domestic_source(url):
  try:
@@ -372,6 +374,44 @@ def so_photos(category,cursor):
   data=json.loads(read_public('https://image.so.com/j?'+urlencode({'q':'国内 男生 氛围感 摄影 穿衣 '+query,'sn':page*30,'pn':30},quote_via=quote)))
   return screen_photography(parse_so(data,cat))
  return public_cached(('360-domestic-v6',cat,query,page),fetch)
+
+
+class EditorialImages(HTMLParser):
+ def __init__(self,text):
+  super().__init__();self.depth=0;self.body_depth=None;self.images=[];self.feed(text)
+ def handle_starttag(self,tag,attrs):
+  a=dict(attrs)
+  if tag=='div':
+   self.depth+=1
+   if 'article-body-content' in a.get('class','').split():self.body_depth=self.depth
+  if tag=='img' and (self.body_depth is not None or a.get('data-fp-lead-image')=='true'):
+   url=a.get('src','')
+   if url.startswith('https://hips.hearstchina.com/hmg-prod/images/'):
+    self.images.append(url.split('?')[0]+'?resize=980:*')
+ def handle_endtag(self,tag):
+  if tag=='div':
+   if self.depth==self.body_depth:self.body_depth=None
+   self.depth-=1
+
+
+def ellemen_photos(category,cursor):
+ def fetch():
+  listing=read_public('https://www.ellemen.com/person/').decode('utf-8','replace')
+  links=list(dict.fromkeys(re.findall(r'https://www\.ellemen\.com/person/a\d+/[^"<> \\]+/',listing)))
+  if not links:raise ValueError('empty magazine listing')
+  # Read complete public series. Once the current listing is exhausted, check it again for new articles.
+  page=links[cursor%len(links)]
+  text=read_public(page).decode('utf-8','replace')
+  title=re.search(r'<title[^>]*>(.*?)</title>',text,re.S)
+  caption=html.unescape(title.group(1)) if title else 'ELLEMEN 男性摄影'
+  images=list(dict.fromkeys(EditorialImages(text).images))
+  rows=[]
+  for image in images[:60]:
+   p=photography_item(image,page,caption,'电影人像','ELLEMEN公开作品')
+   if p:
+    p['source']='ELLEMEN 睿士';rows.append(p)
+  return sum((screen_photography(rows[i:i+30]) for i in range(0,len(rows),30)),[])
+ return public_cached(('ellemen-public',category,cursor),fetch)
 
 
 def bing_photos(category,cursor):
@@ -475,11 +515,11 @@ def photographer_page(category,cursor,author):
  return {'items':rows[cursor*24:(cursor+1)*24],'nextCursor':cursor+1 if more else cursor,'hasMore':more,'sourceAvailable':True,'sources':[{'name':author,'available':True}],'catalogCount':len(rows)}
 
 
-def discover(channel,category,cursor):
+def discover(channel,category,cursor,exclude=None):
  if channel!='photo':raise ValueError('photography only')
  def collect(fn,args):
   rows,ok=fn(*args);remember_photos(rows);return rows,ok
- specs=[('360图片 · 国内作品',so_photos,(category,cursor)),('必应 · 国内作品',bing_photos,(category,cursor))]
+ specs=[('ELLEMEN公开作品',ellemen_photos,(category,cursor)),('360图片 · 国内作品',so_photos,(category,cursor)),('必应 · 国内作品',bing_photos,(category,cursor))]
  if category in TOPICS['photo'] or category=='全部':
   specs += [('堆糖',duitang,(j,cursor)) for j in plan('photo',category,cursor)]
   specs += [('图虫',tuchong,('photo',category,cursor))]
@@ -493,7 +533,7 @@ def discover(channel,category,cursor):
    if key in ACTIVE_SEARCHES:tasks[ACTIVE_SEARCHES[key]]=name
   for key in list(ACTIVE_SEARCHES):
    if len(ACTIVE_SEARCHES)>96 and ACTIVE_SEARCHES[key].done():del ACTIVE_SEARCHES[key]
- existing=seed_photos(category,cursor)
+ existing=([p for p in catalog_rows(category) if p['id'] not in exclude][:24] if exclude is not None else seed_photos(category,cursor))
  done,pending=cf.wait(tasks,timeout=.15 if existing else 28) if tasks else (set(),set())
  result={p['id']:p for p in existing};statuses={name:{'name':name,'available':False,'state':'fetching'} for name,_,_ in specs}
  for f in done:
@@ -504,7 +544,7 @@ def discover(channel,category,cursor):
    if approved_photo(p):result[p['id']]=p
  # Include newly completed catalog entries from other searches, in stable page order.
  for p in seed_photos(category,cursor):result[p['id']]=p
- rows=list(result.values())
+ rows=([p for p in catalog_rows(category) if p['id'] not in exclude][:24] if exclude is not None else list(result.values()))
  more=True
  return {'items':rows,'nextCursor':cursor+1,'hasMore':more,'sourceAvailable':True,'searchAvailable':any(s['available'] for s in statuses.values()),
   'sources':list(statuses.values()),'catalogCount':len(catalog_rows(category)),'photographerCount':len({p.get('sourceId') or p.get('source') for p in catalog_rows('全部')}),
@@ -523,7 +563,7 @@ class Handler(BaseHTTPRequestHandler):
   if u.path=='/api/health':
    try:source_count=len(json.loads((Path(__file__).resolve().parent/'photographer-sources.json').read_text()))
    except (OSError,ValueError):source_count=0
-   return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'visualScreening':visual_filter.ready(),'version':REVIEW_POLICY,'reviewPolicy':REVIEW_POLICY,'providers':PROVIDERS,'photographerCount':source_count,'catalogCount':len(catalog_rows('全部'))})
+   return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'visualScreening':visual_filter.ready(),'version':'domestic-continuous-v7','reviewPolicy':REVIEW_POLICY,'providers':PROVIDERS,'photographerCount':source_count,'catalogCount':len(catalog_rows('全部'))})
   if u.path!='/api/discover':
    name='index.html' if u.path=='/' else u.path.lstrip('/')
    if name not in {'index.html','app.js','style.css','feed-utils.js','sw.js'}:return self.send(404,{'error':'not_found'})
@@ -539,6 +579,23 @@ class Handler(BaseHTTPRequestHandler):
     data=photographer_page(category,cursor,author)
    else:data=discover(channel,category,cursor)
    self.send(200 if data['sourceAvailable'] else 503,data)
+  except (BrokenPipeError,ConnectionResetError):pass
+  finally:GATE.release()
+ def do_POST(self):
+  if urlparse(self.path).path!='/api/discover':return self.send(404,{'error':'not_found'})
+  try:
+   size=int(self.headers.get('Content-Length','0'))
+   if not 0<size<=200000:return self.send(400,{'error':'invalid_body'})
+   q=json.loads(self.rfile.read(size));cursor=q.get('cursor',0);category=q.get('category','全部');author=q.get('source','all');exclude=q.get('exclude',[])
+   if q.get('channel','photo')!='photo' or not isinstance(cursor,int) or not 0<=cursor<=100000 or category!='全部' and category not in PHOTO_QUERIES or not isinstance(exclude,list) or len(exclude)>6500 or any(not isinstance(x,str) or len(x)>100 for x in exclude):return self.send(400,{'error':'invalid_filter'})
+  except (ValueError,TypeError):return self.send(400,{'error':'invalid_body'})
+  if not GATE.acquire(blocking=False):return self.send(429,{'error':'busy','retryAfter':3})
+  try:
+   if author=='all':data=discover('photo',category,cursor,set(exclude))
+   else:
+    rows=[p for p in catalog_rows(category) if p.get('source')==author and p['id'] not in set(exclude)]
+    data={'items':rows[:24],'nextCursor':cursor+1,'hasMore':len(rows)>24,'sourceAvailable':True,'catalogCount':len(rows)}
+   self.send(200,data)
   except (BrokenPipeError,ConnectionResetError):pass
   finally:GATE.release()
  def log_message(self,fmt,*args):print(fmt%args,flush=True)

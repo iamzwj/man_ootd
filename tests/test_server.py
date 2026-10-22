@@ -59,6 +59,7 @@ class DomesticTests(unittest.TestCase):
    read.assert_not_called()
 class PhotographyTests(unittest.TestCase):
  def setUp(self):
+  mocked=patch.object(server,'ellemen_photos',return_value=([],False));mocked.start();self.addCleanup(mocked.stop)
   server.CACHE.clear();server.ACTIVE_SEARCHES.clear()
  def test_outfit_is_no_longer_a_supported_channel(self):
   with self.assertRaises(ValueError):server.discover('outfit','全部',0)
@@ -114,6 +115,8 @@ class PhotographyTests(unittest.TestCase):
    self.assertTrue(result['sourceAvailable']);self.assertEqual(result['catalogCount'],0)
 
 class DomesticContinuousTests(unittest.TestCase):
+ def setUp(self):
+  mocked=patch.object(server,'ellemen_photos',return_value=([],False));mocked.start();self.addCleanup(mocked.stop)
  def test_domestic_domain_boundary(self):
   for url in ['https://douyin.com/note/1','https://a.tuchong.com/1','https://www.zcool.com.cn/work/1']:
    self.assertTrue(server.domestic_source(url))
@@ -126,6 +129,21 @@ class DomesticContinuousTests(unittest.TestCase):
   with patch.object(server,'catalog_rows',return_value=[]),patch.object(server,'remember_photos'),patch.object(server,'so_photos',return_value=([],True)):
    result=server.discover('photo','电影人像',999)
    self.assertEqual(result['nextCursor'],1000);self.assertTrue(result['hasMore']);self.assertEqual(result['items'],[])
+ def test_editorial_extractor_ignores_navigation_and_recommendations(self):
+  image='https://hips.hearstchina.com/hmg-prod/images/'
+  text='<div><img src="'+image+'outside.jpg"><div class="article-body-content"><div><img src="'+image+'one.jpg?resize=1200:*"></div><img src="'+image+'two.jpg"></div><img src="'+image+'recommendation.jpg"></div>'
+  self.assertEqual(server.EditorialImages(text).images,[image+'one.jpg?resize=980:*',image+'two.jpg?resize=980:*'])
+ def test_unseen_catalog_drain_does_not_skip_late_results(self):
+  rows=[dict(id=str(i),category='电影人像') for i in range(80)]
+  with patch.object(server,'catalog_rows',return_value=rows),patch.object(server,'remember_photos'),patch.object(server,'so_photos',return_value=([],True)),patch.object(server,'bing_photos',return_value=([],True)):
+   excluded=set();received=[]
+   for cursor in [20,21,22,23]:
+    result=server.discover('photo','电影人像',cursor,excluded)
+    received.extend(p['id'] for p in result['items']);excluded.update(received)
+   self.assertEqual(len(received),80);self.assertEqual(len(set(received)),80)
+   rows.append(dict(id='late-arrival',category='电影人像'))
+   result=server.discover('photo','电影人像',24,excluded)
+   self.assertEqual([p['id'] for p in result['items']],['late-arrival'])
  def test_automated_screening_publishes_domestic_images_only(self):
   rows=[dict(id='a',image='https://example.com/a.jpg',url='https://douyin.com/note/1'),dict(id='b',image='https://example.com/b.jpg',url='https://flickr.com/photos/1')]
   with patch.object(server.visual_filter,'accept',return_value=True),patch.object(server.visual_filter,'metadata',return_value={'fingerprint':'safe-test'}):
