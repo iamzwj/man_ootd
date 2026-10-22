@@ -13,4 +13,4 @@ export function orderItems(items,seen=new Set(),sort='discover',random=Math.rand
 
 export function heatScore(p){const m=p.engagement||{};return Math.max(Number(m.likes)||0,Number(m.favorites)||0,(Number(m.views)||0)/100)}
 export function isPopular(p){return heatScore(p)>=100||!!(p.ranking&&p.ranking.name&&Number(p.ranking.position)>0)}
-export function heatText(p){const m=p.engagement||{},parts=[];if(p.ranking?.name&&Number(p.ranking.position)>0)parts.push(p.ranking.name+' #'+p.ranking.position);for(const [key,label] of [['likes','点赞'],['favorites','收藏'],['views','浏览']])if(Number.isSafeInteger(m[key])&&m[key]>=0)parts.push(m[key].toLocaleString('zh-CN')+' '+label);return parts.join(' · ')||'来源未提供热度数据'}
+export function heatText(p){if(p.photographer)return p.series||'摄影师公开作品';const m=p.engagement||{},parts=[];if(p.ranking?.name&&Number(p.ranking.position)>0)parts.push(p.ranking.name+' #'+p.ranking.position);for(const [key,label] of [['likes','点赞'],['favorites','收藏'],['views','浏览']])if(Number.isSafeInteger(m[key])&&m[key]>=0)parts.push(m[key].toLocaleString('zh-CN')+' '+label);return parts.join(' · ')||'来源未提供热度数据'}

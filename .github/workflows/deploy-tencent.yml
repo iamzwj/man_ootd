@@ -37,7 +37,7 @@ jobs:
           node --test tests/feed.test.mjs
           python3 -m unittest discover -s tests -p 'test_server.py'
           python3 -m py_compile server.py deploy/configure_proxy.py
-          tar -czf /tmp/ootd.tar.gz index.html style.css app.js feed-utils.js sw.js server.py visual_filter.py photo-catalog.json rejected-photo-fingerprints.json deploy
+          tar -czf /tmp/ootd.tar.gz index.html style.css app.js feed-utils.js sw.js server.py visual_filter.py photo-catalog.json photographer-sources.json rejected-photo-fingerprints.json deploy
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}

@@ -99,5 +99,18 @@ class PhotographyTests(unittest.TestCase):
   with patch.object(server,'catalog_rows',return_value=rows):
    ids=[p['id'] for c in range(5) for p in server.seed_photos('全部',c)]
    self.assertEqual(len(ids),100);self.assertEqual(len(set(ids)),100)
+ def test_photographer_filter_paginates_the_full_catalog(self):
+  rows=[{'id':str(i),'source':'Author A' if i%2 else 'Author B'} for i in range(120)]
+  with patch.object(server,'catalog_rows',return_value=rows):
+   pages=[server.photographer_page('全部',c,'Author A') for c in range(3)]
+   ids=[p['id'] for page in pages for p in page['items']]
+   self.assertEqual(len(ids),60);self.assertEqual(len(set(ids)),60)
+   self.assertTrue(pages[0]['hasMore']);self.assertFalse(pages[-1]['hasMore'])
+   self.assertEqual(pages[-1]['nextCursor'],2)
+ def test_unknown_photographer_is_a_truthful_empty_result(self):
+  with patch.object(server,'catalog_rows',return_value=[]):
+   result=server.photographer_page('全部',0,'Unknown')
+   self.assertEqual(result['items'],[]);self.assertFalse(result['hasMore'])
+   self.assertTrue(result['sourceAvailable']);self.assertEqual(result['catalogCount'],0)
 
 if __name__=='__main__':unittest.main()

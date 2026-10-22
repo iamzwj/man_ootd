@@ -1,0 +1,3429 @@
+{
+  "checkedAt": "2026-10-22T07:43:15Z",
+  "candidateCount": 342,
+  "selectedCount": 100,
+  "imageCount": 140,
+  "countingUnit": "unique credited photographer, not website domain",
+  "sources": [
+    {
+      "name": "Alasdair McLellan",
+      "url": "https://www.artpartner.com/alasdair-mclellan",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Angelo Pennetta",
+      "url": "https://www.artpartner.com/angelo-pennetta",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "David Sims",
+      "url": "https://www.artpartner.com/david-sims",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Drew Vickers",
+      "url": "https://www.artpartner.com/drew-vickers",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Ezra Petronio",
+      "url": "https://www.artpartner.com/ezra-petronio",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 95,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Glen Luchford",
+      "url": "https://www.artpartner.com/glen-luchford",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Gray Sorrenti",
+      "url": "https://www.artpartner.com/gray-sorrenti",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Harley Weir",
+      "url": "https://www.artpartner.com/harley-weir",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jacob Sutton",
+      "url": "https://www.artpartner.com/jacob-sutton",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Julien Martinez Leclerc",
+      "url": "https://www.artpartner.com/julien-martinez-leclerc",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 82,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Lachlan Bailey",
+      "url": "https://www.artpartner.com/lachlan-bailey",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Liv Liberg",
+      "url": "https://www.artpartner.com/liv-liberg",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 81,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Marili Andre",
+      "url": "https://www.artpartner.com/marili-andre",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Mario Sorrenti",
+      "url": "https://www.artpartner.com/mario-sorrenti",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Mark Kean",
+      "url": "https://www.artpartner.com/mark-kean",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Mert Alas & Marcus Piggott",
+      "url": "https://www.artpartner.com/mert-alas-marcus-piggott",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Oliver Hadlee Pearch",
+      "url": "https://www.artpartner.com/oliver-hadlee-pearch",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 100,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Theo Wenner",
+      "url": "https://www.artpartner.com/theo-wenner",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 3,
+      "imageCandidates": 100,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Tyler Mitchell",
+      "url": "https://www.artpartner.com/tyler-mitchell",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "William Abranowicz",
+      "url": "https://artandcommerce.com/artists/william-abranowicz/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 92,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Cass Bird",
+      "url": "https://artandcommerce.com/artists/cass-bird/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 60,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Malick Bodian",
+      "url": "https://artandcommerce.com/artists/malick-bodian/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 52,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Richard Burbridge",
+      "url": "https://artandcommerce.com/artists/richard-burbridge/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 17,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Pierre Debusschere",
+      "url": "https://artandcommerce.com/artists/pierre-debusschere/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 36,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Rahim Fortune",
+      "url": "https://artandcommerce.com/artists/rahim-fortune/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 68,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Erwan Frotin",
+      "url": "https://artandcommerce.com/artists/erwan-frotin/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 60,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Julia Hetta",
+      "url": "https://artandcommerce.com/artists/julia-hetta/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 72,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Dan Jackson",
+      "url": "https://artandcommerce.com/artists/dan-jackson/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Carlijn Jacobs",
+      "url": "https://artandcommerce.com/artists/carlijn-jacobs/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 58,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Stephen Lewis",
+      "url": "https://artandcommerce.com/artists/stephen-lewis/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 81,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Zhong Lin",
+      "url": "https://artandcommerce.com/artists/zhong-lin/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 28,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Craig Mcdean",
+      "url": "https://artandcommerce.com/artists/craig-mcdean/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Steven Meisel",
+      "url": "https://artandcommerce.com/artists/steven-meisel/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 18,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Rafael Pavarotti",
+      "url": "https://artandcommerce.com/artists/rafael-pavarotti/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 68,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Sam Rock",
+      "url": "https://artandcommerce.com/artists/sam-rock/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 82,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Karim Sadli",
+      "url": "https://artandcommerce.com/artists/karim-sadli/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 100,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Anthony Seklaoui",
+      "url": "https://artandcommerce.com/artists/anthony-seklaoui/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 9,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Stephen Shore",
+      "url": "https://artandcommerce.com/artists/stephen-shore/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 48,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Sølve Sundsbø",
+      "url": "https://artandcommerce.com/artists/solve-sundsbo/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 99,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Toiletpaper1",
+      "url": "https://artandcommerce.com/artists/toiletpaper1/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 46,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Vincent Van De Wijngaard",
+      "url": "https://artandcommerce.com/artists/vincent-van-de-wijngaard/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 99,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Willy Vanderperre",
+      "url": "https://artandcommerce.com/artists/willy-vanderperre/",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 74,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Chris Rhodes",
+      "url": "https://www.webberrepresents.com/artist/chris-rhodes",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 8,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Ilya Lipkin",
+      "url": "https://www.webberrepresents.com/artist/ilya-lipkin",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 8,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jeremy Everett",
+      "url": "https://www.webberrepresents.com/artist/jeremy-everett",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 8,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jo Metson Scott",
+      "url": "https://www.webberrepresents.com/artist/jo-metson-scott",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 8,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Laura Jane Coulson",
+      "url": "https://www.webberrepresents.com/artist/laura-jane-coulson",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 9,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Mel Bles",
+      "url": "https://www.webberrepresents.com/artist/mel-bles",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 10,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Nikki Mcclarron",
+      "url": "https://www.webberrepresents.com/artist/nikki-mcclarron",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 9,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Pegah Farahmand",
+      "url": "https://www.webberrepresents.com/artist/pegah-farahmand",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 8,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Rachel Fleminger Hudson",
+      "url": "https://www.webberrepresents.com/artist/rachel-fleminger-hudson",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 9,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Robbie Lawrence",
+      "url": "https://www.webberrepresents.com/artist/robbie-lawrence",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 8,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Senta Simond",
+      "url": "https://www.webberrepresents.com/artist/senta-simond",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 8,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Steve Harries",
+      "url": "https://www.webberrepresents.com/artist/steve-harries",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 8,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Venetia Scott",
+      "url": "https://www.webberrepresents.com/artist/venetia-scott",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 7,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Agnes Lloyd-Platt",
+      "url": "https://east.co/artists/agneslloyd-platt",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 60,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Alex F Webb",
+      "url": "https://east.co/artists/alexfwebb",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 60,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Ana Margarita Flores",
+      "url": "https://east.co/artists/anamargaritaflores",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 55,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Chris Maggio",
+      "url": "https://east.co/artists/chrismaggio",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 50,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Courtney Sofiah Yates",
+      "url": "https://east.co/artists/courtneysofiahyates",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 45,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Emma Hardy",
+      "url": "https://east.co/artists/emmahardy",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 60,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Hailun Ma",
+      "url": "https://east.co/artists/hailunma",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 50,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Heather Sten",
+      "url": "https://east.co/artists/heathersten",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 50,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Iris Humm",
+      "url": "https://east.co/artists/irishumm",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 55,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Kwabena Sekyi Appiah-nti",
+      "url": "https://east.co/artists/kwabenasekyiappiahnti",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 70,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Linda Brownlee",
+      "url": "https://east.co/artists/lindabrownlee",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 60,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Maximilian Virgili",
+      "url": "https://east.co/artists/maximilianvirgili",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 50,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Neva Wireko",
+      "url": "https://east.co/artists/nevawireko",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 50,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Rick Guest",
+      "url": "https://east.co/artists/rickguest",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 65,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Ryan James Caruthers",
+      "url": "https://east.co/artists/ryanjamescaruthers",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 55,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Vivek Vadoliya",
+      "url": "https://east.co/artists/vivekvadoliya",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 80,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Xavier Casanueva",
+      "url": "https://bird-production.com/photographers/xavier-casanueva",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 10,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Teresa Ciocia",
+      "url": "https://bird-production.com/photographers/teresa-ciocia",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 9,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Romain Duquesne",
+      "url": "https://bird-production.com/photographers/romain-duquesne",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 14,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Annabel Elston",
+      "url": "https://bird-production.com/photographers/annabel-elston",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 11,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jana Gerberding",
+      "url": "https://bird-production.com/photographers/jana-gerberding",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 10,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Stanislas Motz Neidhart",
+      "url": "https://bird-production.com/photographers/stanislas-motz-neidhart",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 16,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Ilaria Orsini",
+      "url": "https://bird-production.com/photographers/ilaria-orsini",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 11,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Jonas Unger",
+      "url": "https://bird-production.com/photographers/jonas-unger",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 9,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Bryce Anderson",
+      "url": "https://www.totalworld.us/photography-and-film/bryce-anderson",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 72,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Thistle Brown",
+      "url": "https://www.totalworld.us/photography-and-film/thistle-brown",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 56,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Davit Giorgadze",
+      "url": "https://www.totalworld.us/photography-and-film/davit-giorgadze",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 82,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "David Brandon Geeting",
+      "url": "https://www.totalworld.us/photography-and-film/david-brandon-geeting",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 80,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Andrew Jacobs",
+      "url": "https://www.totalworld.us/photography-and-film/andrew-jacobs",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 80,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Philippe Jarrigeon",
+      "url": "https://www.totalworld.us/photography-and-film/philippe-jarrigeon",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 80,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Brett Lloyd",
+      "url": "https://www.totalworld.us/photography-and-film/brett-lloyd",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 80,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Lukas Wassmann",
+      "url": "https://www.totalworld.us/photography-and-film/lukas-wassmann",
+      "checkedAt": "2026-10-22T06:59:49Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 80,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Daniel Shea",
+      "url": "https://www.minititle.com/daniel-shea",
+      "checkedAt": "2026-10-22T06:59:50Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 63,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Charlotte Wales",
+      "url": "https://www.minititle.com/charlotte-wales",
+      "checkedAt": "2026-10-22T06:59:50Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jack Davison",
+      "url": "https://www.minititle.com/jack-davison",
+      "checkedAt": "2026-10-22T06:59:50Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 100,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Tom Johnson",
+      "url": "https://www.minititle.com/tom-johnson",
+      "checkedAt": "2026-10-22T06:59:50Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jet Swan",
+      "url": "https://www.minititle.com/jet-swan",
+      "checkedAt": "2026-10-22T06:59:50Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Tanya & Zhenya Posternak",
+      "url": "https://www.minititle.com/tanya-zhenya-posternak",
+      "checkedAt": "2026-10-22T06:59:50Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 100,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Cathy Kasterine",
+      "url": "https://www.bryantartists.com/photographers/cathy-kasterine/overview",
+      "checkedAt": "2026-10-22T06:59:50Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 53,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Scott Trindle",
+      "url": "https://www.bryantartists.com/photographers/scott-trindle/overview",
+      "checkedAt": "2026-10-22T06:59:50Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 47,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Yoonwoo Kim",
+      "url": "https://www.yoonwookim.com/work/portrait/",
+      "checkedAt": "2026-10-22T06:59:50Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 20,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "YIS",
+      "url": "https://www.yiscreative.com/",
+      "checkedAt": "2026-10-22T06:59:50Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 100,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Kim Junhyung",
+      "url": "https://phjun.co.kr/portfolio/",
+      "checkedAt": "2026-10-22T06:59:50Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Leslie Zhang",
+      "url": "https://danandsean.co/p/lesliezhang",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Annie Leibovitz",
+      "url": "https://www.lgamanagement.com/div/11/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Ben Weller",
+      "url": "https://www.lgamanagement.com/div/114/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Betina Du Toit",
+      "url": "https://www.lgamanagement.com/div/73/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Charlie Gray",
+      "url": "https://www.lgamanagement.com/div/80/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Conor Cunningham",
+      "url": "https://www.lgamanagement.com/div/78/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Douglas Irvine",
+      "url": "https://www.lgamanagement.com/div/125/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Éamonn Freel",
+      "url": "https://www.lgamanagement.com/div/148/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "James Harvey-Kelly",
+      "url": "https://www.lgamanagement.com/div/68/",
+      "checkedAt": "2026-10-22T07:00:19Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Liz Collins",
+      "url": "https://www.lgamanagement.com/div/116/",
+      "checkedAt": "2026-10-22T07:00:19Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Louise Carrasco",
+      "url": "https://www.lgamanagement.com/div/3/",
+      "checkedAt": "2026-10-22T07:00:20Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Max Miechowski",
+      "url": "https://www.lgamanagement.com/div/147/",
+      "checkedAt": "2026-10-22T07:00:19Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Nadav Kander",
+      "url": "https://www.lgamanagement.com/div/75/",
+      "checkedAt": "2026-10-22T07:00:19Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Nicolas Menu",
+      "url": "https://www.lgamanagement.com/div/137/",
+      "checkedAt": "2026-10-22T07:00:18Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Nicolas Valois",
+      "url": "https://www.lgamanagement.com/div/21/",
+      "checkedAt": "2026-10-22T07:00:18Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Pamela Hanson",
+      "url": "https://www.lgamanagement.com/div/8/",
+      "checkedAt": "2026-10-22T07:00:18Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Sam Wright",
+      "url": "https://www.lgamanagement.com/div/83/",
+      "checkedAt": "2026-10-22T07:00:23Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Steve McCurry",
+      "url": "https://www.lgamanagement.com/div/15/",
+      "checkedAt": "2026-10-22T07:00:22Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Steven Klein",
+      "url": "https://www.lgamanagement.com/div/143/",
+      "checkedAt": "2026-10-22T07:00:22Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Théo Gosselin",
+      "url": "https://www.lgamanagement.com/div/7/",
+      "checkedAt": "2026-10-22T07:00:22Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Tom Craig",
+      "url": "https://www.lgamanagement.com/div/118/",
+      "checkedAt": "2026-10-22T07:00:22Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Annemarieke Van Drimmelen",
+      "url": "https://talent.maworldgroup.com/photography-1/annemarieke-van-drimmelen",
+      "checkedAt": "2026-10-22T07:00:22Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 27,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Anton Gottlob",
+      "url": "https://talent.maworldgroup.com/photography-1/anton-gottlob-1",
+      "checkedAt": "2026-10-22T07:00:22Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 63,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Charly Gosp",
+      "url": "https://talent.maworldgroup.com/photography-1/charly-gosp",
+      "checkedAt": "2026-10-22T07:00:24Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 41,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Daniel Sannwald",
+      "url": "https://talent.maworldgroup.com/photography-1/daniel-sannwald",
+      "checkedAt": "2026-10-22T07:00:25Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 53,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Esther Theaker",
+      "url": "https://talent.maworldgroup.com/photography-1/esther-theaker",
+      "checkedAt": "2026-10-22T07:00:24Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 29,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "François Coquerel",
+      "url": "https://talent.maworldgroup.com/photography-1/franCois-coquerel",
+      "checkedAt": "2026-10-22T07:00:24Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 32,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Felicity Ingram",
+      "url": "https://talent.maworldgroup.com/photography-1/felicity-ingram",
+      "checkedAt": "2026-10-22T07:00:24Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 35,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Gregory Harris",
+      "url": "https://talent.maworldgroup.com/photography-1/gregory-harris",
+      "checkedAt": "2026-10-22T07:00:24Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 29,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Haw-Lin Services",
+      "url": "https://talent.maworldgroup.com/photography-1/haw-lin-services",
+      "checkedAt": "2026-10-22T07:00:24Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 39,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Hugo Comte",
+      "url": "https://talent.maworldgroup.com/photography-1/hugo-comte",
+      "checkedAt": "2026-10-22T07:00:25Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 64,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Julie Greve",
+      "url": "https://talent.maworldgroup.com/photography-1/julie-greve",
+      "checkedAt": "2026-10-22T07:00:28Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 33,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Joaquín Laguinge",
+      "url": "https://talent.maworldgroup.com/photography-1/joaquIn-laguinge",
+      "checkedAt": "2026-10-22T07:00:25Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 26,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jordan Hemingway",
+      "url": "https://talent.maworldgroup.com/photography-1/jordan-hemingway",
+      "checkedAt": "2026-10-22T07:00:26Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 33,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Marie Deteneuille",
+      "url": "https://talent.maworldgroup.com/photography-1/marie-deteneuille-1",
+      "checkedAt": "2026-10-22T07:00:26Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 23,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Maxime Poiblanc",
+      "url": "https://talent.maworldgroup.com/photography-1/maxime-poiblanc",
+      "checkedAt": "2026-10-22T07:00:28Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Mark Peckmezian",
+      "url": "https://talent.maworldgroup.com/photography-1/mark-peckmezian",
+      "checkedAt": "2026-10-22T07:00:27Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 24,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Pablo Di Prima",
+      "url": "https://talent.maworldgroup.com/photography-1/pablo-di-prima",
+      "checkedAt": "2026-10-22T07:00:26Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 28,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Sean Thomas",
+      "url": "https://talent.maworldgroup.com/photography-1/sean-thomas",
+      "checkedAt": "2026-10-22T07:00:26Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 26,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Sharna Osborne",
+      "url": "https://talent.maworldgroup.com/photography-1/sharna-osborne",
+      "checkedAt": "2026-10-22T07:00:28Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 47,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Theo Liu",
+      "url": "https://talent.maworldgroup.com/photography-1/theo-liu",
+      "checkedAt": "2026-10-22T07:00:28Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 36,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Valentin Herfray",
+      "url": "https://talent.maworldgroup.com/photography-1/valentin-herfray",
+      "checkedAt": "2026-10-22T07:00:28Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 46,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Zora Sicher",
+      "url": "https://talent.maworldgroup.com/photography-1/zora-sicher-1",
+      "checkedAt": "2026-10-22T07:00:28Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 26,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Hyea W. Kang",
+      "url": "https://www.homeagency.com/artists/hyea-w-kang",
+      "checkedAt": "2026-10-22T07:00:30Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 100,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Jang Dukhwa",
+      "url": "https://www.homeagency.com/artists/jang-dukhwa",
+      "checkedAt": "2026-10-22T07:00:31Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Lean Lui",
+      "url": "https://www.homeagency.com/artists/lean-lui",
+      "checkedAt": "2026-10-22T07:00:31Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Steven Pan",
+      "url": "https://www.homeagency.com/artists/steven-pan",
+      "checkedAt": "2026-10-22T07:00:31Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Stefan Dotter",
+      "url": "https://www.homeagency.com/artists/stefan-dotter",
+      "checkedAt": "2026-10-22T07:00:31Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 95,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Paul Maffi",
+      "url": "https://www.homeagency.com/artists/paul-maffi",
+      "checkedAt": "2026-10-22T07:00:31Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Pak Bae",
+      "url": "https://www.homeagency.com/artists/pak-bae",
+      "checkedAt": "2026-10-22T07:00:30Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 3,
+      "imageCandidates": 100,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Kento Utsubo",
+      "url": "https://www.homeagency.com/artists/kento-utsubo",
+      "checkedAt": "2026-10-22T07:00:31Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Dai Yamashiro",
+      "url": "https://www.homeagency.com/artists/dai-yamashiro",
+      "checkedAt": "2026-10-22T07:00:31Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Fabien Montique",
+      "url": "https://www.homeagency.com/artists/fabien-montique",
+      "checkedAt": "2026-10-22T07:00:33Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 100,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Priscillia Saada",
+      "url": "https://www.homeagency.com/artists/priscillia-saada",
+      "checkedAt": "2026-10-22T07:00:33Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 100,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "David Newton",
+      "url": "https://www.homeagency.com/artists/david-newton",
+      "checkedAt": "2026-10-22T07:00:33Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 32,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Andrea Idini",
+      "url": "https://www.homeagency.com/artists/andrea-idini",
+      "checkedAt": "2026-10-22T07:00:33Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 69,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Alexander Soltermann",
+      "url": "https://www.homeagency.com/artists/alexander-soltermann",
+      "checkedAt": "2026-10-22T07:00:34Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 100,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Anna Collins",
+      "url": "https://www.homeagency.com/artists/anna-collins",
+      "checkedAt": "2026-10-22T07:00:34Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 77,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Dmitry Kukushkin",
+      "url": "https://www.homeagency.com/artists/dmitry-kukushkin",
+      "checkedAt": "2026-10-22T07:00:33Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 58,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Wong Sim",
+      "url": "https://wongsim.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Pat Supsiri",
+      "url": "https://patsupsiri.com/",
+      "checkedAt": "2026-10-22T07:11:24Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 80,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Brian Jamie",
+      "url": "https://brianjamie.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Daniel Jaems",
+      "url": "https://danieljaems.com/",
+      "checkedAt": "2026-10-22T07:11:23Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 18,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Sasha Olsen",
+      "url": "https://sashaolsen.com/",
+      "checkedAt": "2026-10-22T07:11:18Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 99,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Serge Lee",
+      "url": "https://sergelee.com/",
+      "checkedAt": "2026-10-22T07:11:19Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 17,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Kosmas Pavlos",
+      "url": "https://kosmaspavlos.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Bartek Szmigulski",
+      "url": "https://bartekszmigulski.com/",
+      "checkedAt": "2026-10-22T07:11:24Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 117,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Leonardo Corredor",
+      "url": "https://leonardocorredor.com/",
+      "checkedAt": "2026-10-22T07:11:32Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "homepage redirected to another artist"
+    },
+    {
+      "name": "Victor Santiago",
+      "url": "https://victorsantiago.com/",
+      "checkedAt": "2026-10-22T07:11:20Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 50,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Giampaolo Sgura",
+      "url": "https://giampaolosgura.com/",
+      "checkedAt": "2026-10-22T07:11:22Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 100,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Mariano Vivanco",
+      "url": "https://marianovivanco.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Giovanni Squatriti",
+      "url": "https://giovannisquatriti.com/",
+      "checkedAt": "2026-10-22T07:11:30Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 10,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Alvaro Beamud Cortes",
+      "url": "https://alvarobeamud.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Daniel Riera",
+      "url": "https://danielriera.com/",
+      "checkedAt": "2026-10-22T07:11:25Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Nacho Alegre",
+      "url": "https://nachoalegre.com/",
+      "checkedAt": "2026-10-22T07:11:27Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 116,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Nacho Pinedo",
+      "url": "https://nachopinedo.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Fede Delibes",
+      "url": "https://fededelibes.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Adrian Mesko",
+      "url": "https://adrianmesko.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Bruno Staub",
+      "url": "https://brunostaub.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Bruno Van Mossevelde",
+      "url": "https://brunovanmossevelde.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Tom Munro",
+      "url": "https://tommunro.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Matthew Brookes",
+      "url": "https://matthewbrookesphotography.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Matthew Scrivens",
+      "url": "https://matthewscrivens.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Matthew Lyn",
+      "url": "https://matthewlyn.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Doug Inglish",
+      "url": "https://douginglish.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "David Roemer",
+      "url": "https://davidroemer.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Arnaldo Anaya Lucca",
+      "url": "https://arnaldoanaya.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Greg Swales",
+      "url": "https://gregswales.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Christian Oita",
+      "url": "https://christianoita.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Christian Högstedt",
+      "url": "https://christianhogstedt.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Alexander Saladrigas",
+      "url": "https://alexandersaladrigas.com/",
+      "checkedAt": "2026-10-22T07:12:14Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 24,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Alexander Beer",
+      "url": "https://www.malemodelscene.net/editorial/sam-c-alexander-beer/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 13,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Alexi Lubomirski",
+      "url": "https://alexilubomirski.com/",
+      "checkedAt": "2026-10-22T07:12:13Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 31,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Phil Poynter",
+      "url": "https://philpoynter.com/",
+      "checkedAt": "2026-10-22T07:12:15Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 3,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Simon Lipman",
+      "url": "https://simonlipman.com/",
+      "checkedAt": "2026-10-22T07:12:16Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 17,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jon Gorrigan",
+      "url": "https://jongorrigan.com/",
+      "checkedAt": "2026-10-22T07:12:16Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 121,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jack Waterlot",
+      "url": "https://jackwaterlot.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Alexandre Cunha",
+      "url": "https://alexandrecunha.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Riccardo Vimercati",
+      "url": "https://riccardovimercati.com/",
+      "checkedAt": "2026-10-22T07:12:18Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 27,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Stefano Galuzzi",
+      "url": "https://stefanogaluzzi.com/",
+      "checkedAt": "2026-10-22T07:12:18Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Lorenzo Marcucci",
+      "url": "https://lorenzomarcucci.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Emilio Tini",
+      "url": "https://emiliotini.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Luca Finotti",
+      "url": "https://lucafinotti.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Luca Campri",
+      "url": "https://lucacampri.com/",
+      "checkedAt": "2026-10-22T07:12:22Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 26,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Davide Musto",
+      "url": "https://davidemusto.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Luca Meneghel",
+      "url": "https://lucameneghel.com/",
+      "checkedAt": "2026-10-22T07:12:22Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 86,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Andrea Gandini",
+      "url": "https://andreagandini.com/",
+      "checkedAt": "2026-10-22T07:12:25Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 1,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Alessandro Burzigotti",
+      "url": "https://alessandroburzigotti.com/",
+      "checkedAt": "2026-10-22T07:12:31Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 150,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Alessandro Esposito",
+      "url": "https://alessandroesposito.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Alessandro Dal Buoni",
+      "url": "https://alessandrodalbuoni.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Felix Cooper",
+      "url": "https://felixcooper.com/",
+      "checkedAt": "2026-10-22T07:12:25Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 18,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jesse Lizotte",
+      "url": "https://jesselizotte.com/",
+      "checkedAt": "2026-10-22T07:12:25Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 150,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Darren McDonald",
+      "url": "https://darrenmcdonald.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Georges Antoni",
+      "url": "https://georgesantoni.com/",
+      "checkedAt": "2026-10-22T07:12:27Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 10,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "James J. Robinson",
+      "url": "https://jamesjrobinson.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Jordan Barrett",
+      "url": "https://jordanbarrett.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Michael Bailey Gates",
+      "url": "https://michaelbaileygates.com/",
+      "checkedAt": "2026-10-22T07:12:28Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 3,
+      "imageCandidates": 150,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Ryan McGinley",
+      "url": "https://ryanmcginley.com/",
+      "checkedAt": "2026-10-22T07:12:26Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 46,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Ryan Pfluger",
+      "url": "https://ryanpfluger.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Collier Schorr",
+      "url": "https://collierschorr.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Ethan James Green",
+      "url": "https://ethanjamesgreen.com/",
+      "checkedAt": "2026-10-22T07:12:28Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 1,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jack Pierson",
+      "url": "https://jackpiersonstudio.com/",
+      "checkedAt": "2026-10-22T07:12:30Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 5,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Mark Abrahams",
+      "url": "https://markabrahams.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Yu Tsai",
+      "url": "https://yutsai.com/",
+      "checkedAt": "2026-10-22T07:12:31Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 141,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Wing Shya",
+      "url": "https://wingshya.com/",
+      "checkedAt": "2026-10-22T07:12:31Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 1,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Leslie Kee",
+      "url": "https://lesliekee.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Kinya Ota",
+      "url": "https://kinyaota.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Takay",
+      "url": "https://takayphotography.com/",
+      "checkedAt": "2026-10-22T07:12:32Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 16,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Kenshu Shintsubo",
+      "url": "https://shintsubokenshu.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Kei Ogata",
+      "url": "https://keiogata.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Maciej Kucia",
+      "url": "https://maciejkucia.com/",
+      "checkedAt": "2026-10-22T07:12:33Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 2,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Yoshiyuki Matsumura",
+      "url": "https://yoshiyukimatsumura.com/",
+      "checkedAt": "2026-10-22T07:12:34Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 3,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Yusuke Miyazaki",
+      "url": "https://yusukemiyazaki.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Piczo",
+      "url": "https://piczo.co.uk/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Yu Cong",
+      "url": "https://yucong.cn/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Win Tam",
+      "url": "https://wintam.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Sann Chan",
+      "url": "https://sannchan.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Zeng Wu",
+      "url": "https://zeng-wu.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Zhang Ahuei",
+      "url": "https://zhangahuei.com/",
+      "checkedAt": "2026-10-22T07:12:37Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 13,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Hiro Kim",
+      "url": "https://hirokim.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Hong Janghyun",
+      "url": "https://hongjanghyun.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Kim Hee June",
+      "url": "https://kimheejune.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Kim Young Jun",
+      "url": "https://kimyoungjun.com/",
+      "checkedAt": "2026-10-22T07:12:37Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 1,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Ahn Joo Young",
+      "url": "https://ahnjuyoung.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Shin Sun Hye",
+      "url": "https://shinsunhye.com/",
+      "checkedAt": "2026-10-22T07:43:15Z",
+      "pageReachable": false,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 0,
+      "decision": "page unavailable or no photograph candidates"
+    },
+    {
+      "name": "Michiel Wouda",
+      "url": "https://www.malemodelscene.net/portraits/grego-belau-by-michiel-wouda/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 8,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Richard Kranzin",
+      "url": "https://www.malemodelscene.net/portraits/laurenz-zimmermann-by-richard-kranzin/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 3,
+      "imageCandidates": 11,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Adam Washington",
+      "url": "https://www.malemodelscene.net/portraits/tate-foxson-by-adam-washington/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 16,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Daine Mashiri",
+      "url": "https://www.malemodelscene.net/portraits/harry-ash-by-daine-mashiri/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 10,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Antonio C. Malia",
+      "url": "https://www.malemodelscene.net/portraits/carlos-lara-herrera-in-marinero/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 16,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Ben Sabo",
+      "url": "https://www.malemodelscene.net/portraits/mate-in-off-duty-by-ben-sabo/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 13,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Vladislav Abramov",
+      "url": "https://www.malemodelscene.net/portraits/nothing-but-summer-by-vladislav-abramov/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 16,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Viktor Melnyk",
+      "url": "https://www.malemodelscene.net/portraits/guille-castillo-in-body-of-work/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 12,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Caique Mendes",
+      "url": "https://www.malemodelscene.net/portraits/shotaro-kamiya-in-what-the-wound-wants/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 11,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Juan Lamas",
+      "url": "https://www.malemodelscene.net/portraits/martin-cols-by-juan-lamas/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 15,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Ryan Barhaug",
+      "url": "https://www.malemodelscene.net/portraits/max-luc-by-ryan-barhaug/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 12,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Hamid Barzegar",
+      "url": "https://www.malemodelscene.net/portraits/jasper-baumann-in-portrait-of-fever/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 6,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Tanguy Besnier",
+      "url": "https://www.malemodelscene.net/portraits/daniel-roman-in-anxiety-or-anticipation/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 13,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Blake Ballard",
+      "url": "https://www.malemodelscene.net/portraits/charlie-matthews-by-blake-ballard/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 8,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Jacek Szopik",
+      "url": "https://www.malemodelscene.net/portraits/hard-pastel-by-jacek-szopik/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 15,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Max von Witzleben",
+      "url": "https://www.malemodelscene.net/portraits/nick-miller-by-max-von-witzleben/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 11,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Sotiris Bougas",
+      "url": "https://www.malemodelscene.net/portraits/gabriel-ferzza-in-chromatic-flesh/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 14,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Joey Leo",
+      "url": "https://www.malemodelscene.net/portraits/bas-laduc-by-joey-leo/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 13,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Jerry Agbebaku",
+      "url": "https://www.malemodelscene.net/portraits/adrien-nguyen-in-private-noise/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 9,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Michal Wic",
+      "url": "https://www.malemodelscene.net/portraits/jan-paulus-in-service-disruption/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 12,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Thiago Martini",
+      "url": "https://www.malemodelscene.net/interviews/interview-with-caio-condi/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 13,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Daniel Waiswol",
+      "url": "https://www.malemodelscene.net/portraits/peterbilt-19-by-daniel-waiswol/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 18,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Elys Berroteran",
+      "url": "https://www.malemodelscene.net/portraits/jonas-barros-in-love-me-more/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 13,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Jorden DeGaetano",
+      "url": "https://www.malemodelscene.net/interviews/interview-with-billy-dunn/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 15,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Natasa",
+      "url": "https://www.malemodelscene.net/portraits/aggelos-tzaferis-in-the-quiet-game/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 12,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Vicente Mosto",
+      "url": "https://www.malemodelscene.net/portraits/milano-gang-by-vicente-mosto/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 18,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Borislav Utjesinovic",
+      "url": "https://www.malemodelscene.net/interviews/interview-with-iago-botelho/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 14,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Shay Cohen Arbel",
+      "url": "https://www.malemodelscene.net/portraits/federico-cola-by-shay-cohen-arbel/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 15,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Cesar Perin",
+      "url": "https://www.malemodelscene.net/editorial/mitchel-boonstra-interview/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 13,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Ferran Casanova",
+      "url": "https://www.malemodelscene.net/interviews/interview-with-joel-culell/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 12,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Maurizio Montani",
+      "url": "https://www.malemodelscene.net/portraits/kosta-zecevic-by-maurizio-montani/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 10,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Miomir Milic",
+      "url": "https://www.malemodelscene.net/portraits/next-to-the-poolside-by-miomir-milic/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 18,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Samuel Paul",
+      "url": "https://www.malemodelscene.net/portraits/natal-masero-by-samuel-paul-for-mmscene-exclusive/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 11,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Patrick Lacsina",
+      "url": "https://www.malemodelscene.net/portraits/anthony-piccirillo-in-homme-alone/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 14,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Arthur Iskandarov",
+      "url": "https://www.malemodelscene.net/portraits/lucas-rufino-autumn-garden/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 18,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Georges Dobrev",
+      "url": "https://www.malemodelscene.net/portraits/end-of-summer-by-georges-dobrev/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 15,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Nuttpon Pewpan",
+      "url": "https://www.malemodelscene.net/portraits/kamal-sad-by-nuttpon-pewpan/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 15,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Edward Tran",
+      "url": "https://www.malemodelscene.net/portraits/ivo-pelle-by-edward-tran/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 15,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Maximiliano Yoguel",
+      "url": "https://www.malemodelscene.net/portraits/alex-joos-by-maximiliano-yoguel/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 14,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Lucas Ricci",
+      "url": "https://www.malemodelscene.net/portraits/maximiliano-gonzalez-caraballo-by-lucas-ricci/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 11,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Lucas Fonseca",
+      "url": "https://www.malemodelscene.net/portraits/antonio-maria-fonte-da-telha/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 15,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Grant Maxfield",
+      "url": "https://www.malemodelscene.net/portraits/nico-borrello-by-grant-maxfield/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 2,
+      "imageCandidates": 11,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Alejandro Ramirez",
+      "url": "https://www.malemodelscene.net/portraits/gabriel-dos-santos-its-almost-summer/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 13,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Leonardo Holanda",
+      "url": "https://www.malemodelscene.net/portraits/sergio-perdomo-by-leonardo-holanda/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 15,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Malachi Isaiah",
+      "url": "https://www.malemodelscene.net/portraits/malik-lindo-by-umberto-buglione/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 8,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Giovanni Cardenas",
+      "url": "https://www.malemodelscene.net/portraits/jonah-folks-by-giovanni-cardenas/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 11,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Macky Mann",
+      "url": "https://www.malemodelscene.net/portraits/paris-paused-by-macky-mann/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 15,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Giuseppe Falla",
+      "url": "https://www.malemodelscene.net/portraits/landslide-by-giuseppe-falla/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 13,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Michael Banfi",
+      "url": "https://www.malemodelscene.net/portraits/hello-im-jakob-by-michael-banfi/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 11,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Davide Edoardo",
+      "url": "https://www.malemodelscene.net/portraits/bad-boy-charm-by-davide-edoardo/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 16,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Nicola Surbera",
+      "url": "https://www.malemodelscene.net/portraits/mmscene-portraits-simonas-memenas-by-nicola-surbera/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 7,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Kenneth Medilo",
+      "url": "https://www.malemodelscene.net/interviews/mmscene-exclusive-interview-with-mitchel-scott/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 15,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Maxim Vogel",
+      "url": "https://www.malemodelscene.net/portraits/akmal-donaev-maxim-vogel/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 14,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Tania Mendoza",
+      "url": "https://www.malemodelscene.net/portraits/interview-miguel-cobos/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 13,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Riccardo Plozzer",
+      "url": "https://www.malemodelscene.net/portraits/interview-igor-laurenco/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 13,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Matu Buiatti",
+      "url": "https://www.malemodelscene.net/portraits/valentin-garbi-matu-buiatti/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 9,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "David Sierra",
+      "url": "https://www.malemodelscene.net/portraits/h2hot-david-sierra/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 15,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Mark Magnaye",
+      "url": "https://www.malemodelscene.net/portraits/interview-yves-alain/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 13,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Eric Hason",
+      "url": "https://www.malemodelscene.net/portraits/mmscene-portraits-steven-castillo-by-eric-hason/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 10,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jury Krajcik",
+      "url": "https://www.malemodelscene.net/menswear/viktor-zagnoyko/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": true,
+      "selectedPhotos": 1,
+      "imageCandidates": 11,
+      "decision": "selected frames after visual review"
+    },
+    {
+      "name": "Rob Hookey",
+      "url": "https://www.malemodelscene.net/portraits/guy-webster-rob-hookey/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 12,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Claudio Weber",
+      "url": "https://www.malemodelscene.net/agencies/modelwerk/ben-klepp-claudio-weber/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 10,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Tyler Chick (",
+      "url": "https://www.malemodelscene.net/editorial/zane-phillips-interview/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 9,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Alejandro Brito",
+      "url": "https://www.malemodelscene.net/exclusive/emilio-alcaraz-by-alejandro-brito/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 15,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Midchel Meza",
+      "url": "https://www.malemodelscene.net/exclusive/uneasy-solitude-by-midchel-meza/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 15,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Photo by Jury Krajcik for MMSCENE",
+      "url": "https://www.malemodelscene.net/editorial/mmscene-portraits-gianluca-fontana-by-jury-krajcik/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 12,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Nicole Wilson –",
+      "url": "https://www.malemodelscene.net/exclusive/mmscene-interview-coyotl/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 10,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Can you share your journey into the world of modeling?",
+      "url": "https://www.malemodelscene.net/exclusive/mmscene-exclusive-interview-alex-markou/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 10,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Shane Reynolds –",
+      "url": "https://www.malemodelscene.net/editorial/checked-out-shane-reynolds/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 10,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Joel Alarcón –",
+      "url": "https://www.malemodelscene.net/editorial/kenneth-clark-interview/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 12,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Jon Wong –",
+      "url": "https://www.malemodelscene.net/editorial/sergio-perdomo-jon-wong/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 13,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Mila F. –",
+      "url": "https://www.malemodelscene.net/editorial/dystopian-relapse-mila-f/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 11,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Diego Bigolin –",
+      "url": "https://www.malemodelscene.net/editorial/alisson-diego-bigolin/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 15,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Nico Quinteros –",
+      "url": "https://www.malemodelscene.net/editorial/ivan-nico-quinteros/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 10,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Juan Retallack",
+      "url": "https://www.malemodelscene.net/exclusive/red-juan-retallack/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 15,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Elvis de Rivero –",
+      "url": "https://www.malemodelscene.net/editorial/lucas-tornquist-elvis-de-rivero/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 17,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Rene Funk –",
+      "url": "https://www.malemodelscene.net/editorial/ronin-rene-funk/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 14,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Monsieur Kay –",
+      "url": "https://www.malemodelscene.net/editorial/charly-poirier-interview/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 13,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Hudson Rennan –",
+      "url": "https://www.malemodelscene.net/editorial/guilherme-gonella-hudson-rennan/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 19,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Vinyet Feliubadaló –",
+      "url": "https://www.malemodelscene.net/editorial/roc-cuadras-vinyet-feliubadalo/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 14,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Constantinos Terzopoylos –",
+      "url": "https://www.malemodelscene.net/editorial/nikolas-melachroinidis-constantinos-terzopoylos/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 20,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Chris Fucile –",
+      "url": "https://www.malemodelscene.net/editorial/colton-chris-fucile/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 12,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Abraham Magos –",
+      "url": "https://www.malemodelscene.net/editorial/lucas-abraham-magos/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 14,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Mirko Fuhrherr –",
+      "url": "https://www.malemodelscene.net/editorial/felix-mirko-fuhrherr/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 15,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Ori Paul Levi –",
+      "url": "https://www.malemodelscene.net/editorial/omer-ori-paul-levi/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 7,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Morten Skalstad –",
+      "url": "https://www.malemodelscene.net/editorial/sun-mind-morten-skalstad/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 15,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Clara Alonso –",
+      "url": "https://www.malemodelscene.net/editorial/enrique-farinas-clara-alonso/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 12,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Hector Silva –",
+      "url": "https://www.malemodelscene.net/editorial/modern-classic-hector-silva/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 13,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Marko Mijailovic –",
+      "url": "https://www.malemodelscene.net/editorial/blair-stewart-marko-mijailovic/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 9,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Lucas Lei",
+      "url": "https://www.malemodelscene.net/editorial/sergey-sergeev-lucas-lei/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 12,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Matthew Tortolano –",
+      "url": "https://www.malemodelscene.net/editorial/gabriel-riccieri-matthew-tortolano/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 10,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Trent Pace –",
+      "url": "https://www.malemodelscene.net/editorial/luca-moncho-trent-pace/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 17,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Aaron J Hurley –",
+      "url": "https://www.malemodelscene.net/exclusive/louis-iii-mmscene/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 9,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Dinos Pafilas –",
+      "url": "https://www.malemodelscene.net/editorial/caio-beloved-dinos-pafilas/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 12,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Oleg Borisuk –",
+      "url": "https://www.malemodelscene.net/editorial/coisheam-oleg-borisuk/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 14,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Claire Désérable",
+      "url": "https://www.malemodelscene.net/editorial/moritz-hau-claire-deserable/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 12,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Christian Rios –",
+      "url": "https://www.malemodelscene.net/editorial/wilhelmina-la-boys-christian-rios/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 15,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Angel Ruiz –",
+      "url": "https://www.malemodelscene.net/editorial/moussa-ndiaye-angel-ruiz/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 9,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    },
+    {
+      "name": "Kostis Golfis –",
+      "url": "https://www.malemodelscene.net/editorial/petros-zarnomitros-kostis-golfis/",
+      "checkedAt": "2026-10-22T07:15:21Z",
+      "pageReachable": true,
+      "selected": false,
+      "selectedPhotos": 0,
+      "imageCandidates": 20,
+      "decision": "not selected after candidate review; never publish the whole portfolio"
+    }
+  ]
+}

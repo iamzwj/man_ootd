@@ -285,7 +285,7 @@ PHOTO_QUERIES = {
  '电影人像': ['cinematic male portrait photography', 'moody man portrait natural light', 'editorial male portrait film photography', '男生 电影感 氛围感 人像 摄影'],
  '黑白情绪': ['black and white man portrait photography', 'male monochrome cinematic portrait', '男生 黑白 情绪 写真'],
  **TOPICS['photo']}
-REVIEW_POLICY='male-editorial-v4'
+REVIEW_POLICY='photographer-edit-v5'
 PROVIDERS = ['360图片', '必应图片', 'Flickr', '堆糖', '图虫']
 
 
@@ -463,6 +463,11 @@ def remember_photos(rows):
 
 def seed_photos(category,cursor):return catalog_rows(category)[cursor*24:(cursor+1)*24]
 
+def photographer_page(category,cursor,author):
+ rows=[p for p in catalog_rows(category) if p.get('source')==author]
+ more=(cursor+1)*24<len(rows)
+ return {'items':rows[cursor*24:(cursor+1)*24],'nextCursor':cursor+1 if more else cursor,'hasMore':more,'sourceAvailable':True,'sources':[{'name':author,'available':True}],'catalogCount':len(rows)}
+
 
 def discover(channel,category,cursor):
  if channel!='photo':raise ValueError('photography only')
@@ -496,7 +501,7 @@ def discover(channel,category,cursor):
  rows=list(result.values())
  more=(cursor+1)*24<len(catalog_rows(category))
  return {'items':rows,'nextCursor':cursor+1 if more else cursor,'hasMore':more,'sourceAvailable':bool(rows) or any(s['available'] for s in statuses.values()),
-  'sources':list(statuses.values()),'catalogCount':len(catalog_rows(category)),
+  'sources':list(statuses.values()),'catalogCount':len(catalog_rows(category)),'photographerCount':len({p.get('sourceId') or p.get('source') for p in catalog_rows('全部')}),
   'mode':'live','checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
 
 class Handler(BaseHTTPRequestHandler):
@@ -504,7 +509,15 @@ class Handler(BaseHTTPRequestHandler):
   body=json.dumps(data,ensure_ascii=False,separators=(',',':')).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_GET(self):
   u=urlparse(self.path)
-  if u.path=='/api/health':return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'visualScreening':visual_filter.ready(),'version':'male-editorial-v4','reviewPolicy':REVIEW_POLICY,'providers':PROVIDERS})
+  if u.path=='/api/sources':
+   registry=Path(__file__).resolve().parent/'photographer-sources.json'
+   try:rows=json.loads(registry.read_text())
+   except (OSError,ValueError):rows=[]
+   return self.send(200,{'items':rows,'count':len(rows)})
+  if u.path=='/api/health':
+   try:source_count=len(json.loads((Path(__file__).resolve().parent/'photographer-sources.json').read_text()))
+   except (OSError,ValueError):source_count=0
+   return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'visualScreening':visual_filter.ready(),'version':'photographer-edit-v5','reviewPolicy':REVIEW_POLICY,'providers':PROVIDERS,'photographerCount':source_count,'catalogCount':len(catalog_rows('全部'))})
   if u.path!='/api/discover':
    name='index.html' if u.path=='/' else u.path.lstrip('/')
    if name not in {'index.html','app.js','style.css','feed-utils.js','sw.js'}:return self.send(404,{'error':'not_found'})
@@ -515,7 +528,11 @@ class Handler(BaseHTTPRequestHandler):
   if channel!='photo' or category!='全部' and category not in PHOTO_QUERIES or not 0<=cursor<=100000:return self.send(400,{'error':'invalid_filter'})
   if not GATE.acquire(blocking=False):return self.send(429,{'error':'busy','retryAfter':3})
   try:
-   data=discover(channel,category,cursor);self.send(200 if data['sourceAvailable'] else 503,data)
+   author=q.get('source',['all'])[0]
+   if author!='all':
+    data=photographer_page(category,cursor,author)
+   else:data=discover(channel,category,cursor)
+   self.send(200 if data['sourceAvailable'] else 503,data)
   except (BrokenPipeError,ConnectionResetError):pass
   finally:GATE.release()
  def log_message(self,fmt,*args):print(fmt%args,flush=True)
