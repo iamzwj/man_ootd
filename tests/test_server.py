@@ -83,6 +83,17 @@ class PhotographyTests(unittest.TestCase):
   with patch.object(server.visual_filter,'accept',return_value=True),patch.object(server.visual_filter,'metadata',return_value={'fingerprint':'abcdef','width':800,'height':1200}):
    result=server.screen_photography(rows)
    self.assertEqual(len({p['id'] for p in result}),1)
+ def test_only_current_editorial_approval_is_published(self):
+  approved={'id':'approved','category':'电影人像','visualChecked':True,'reviewed':True,'aestheticVersion':server.REVIEW_POLICY}
+  pending={**approved,'id':'pending','reviewed':False}
+  old={**approved,'id':'old','aestheticVersion':'old-policy'}
+  with patch.object(Path,'read_text',return_value=json.dumps([approved,pending,old])),patch.object(server,'LIVE_CATALOG',{}):
+   self.assertEqual([p['id'] for p in server.catalog_rows('全部')],['approved'])
+ def test_unreviewed_search_result_cannot_enter_live_response(self):
+  pending={'id':'pending','category':'电影人像','visualChecked':True}
+  with patch.object(server,'catalog_rows',return_value=[]),patch.object(server,'remember_photos'),patch.object(server,'bing_photos',return_value=([pending],True)),patch.object(server,'flickr_photos',return_value=([],False)),patch.object(server,'so_photos',return_value=([],False)):
+   result=server.discover('photo','电影人像',0)
+   self.assertEqual(result['items'],[]);self.assertFalse(result['hasMore']);self.assertEqual(result['nextCursor'],0)
  def test_catalog_pages_have_no_repetition(self):
   rows=[{'id':str(i),'visualChecked':True,'category':'电影人像'} for i in range(100)]
   with patch.object(server,'catalog_rows',return_value=rows):

@@ -285,6 +285,7 @@ PHOTO_QUERIES = {
  '电影人像': ['cinematic male portrait photography', 'moody man portrait natural light', 'editorial male portrait film photography', '男生 电影感 氛围感 人像 摄影'],
  '黑白情绪': ['black and white man portrait photography', 'male monochrome cinematic portrait', '男生 黑白 情绪 写真'],
  **TOPICS['photo']}
+REVIEW_POLICY='male-editorial-v4'
 PROVIDERS = ['360图片', '必应图片', 'Flickr', '堆糖', '图虫']
 
 
@@ -362,7 +363,7 @@ def so_photos(category,cursor):
  cats=list(SO_QUERIES) if category=='全部' else [category];cat=cats[cursor%len(cats)]
  cycle=cursor//len(cats);terms=SO_QUERIES[cat];query=terms[cycle%len(terms)];page=cycle//len(terms)
  def fetch():
-  data=json.loads(read_public('https://image.so.com/j?'+urlencode({'q':query,'sn':page*30,'pn':30},quote_via=quote)))
+  data=json.loads(read_public('https://image.so.com/j?'+urlencode({'q':'帅哥 男模 '+query,'sn':page*30,'pn':30},quote_via=quote)))
   return screen_photography(parse_so(data,cat))
  return public_cached(('360-photo-v3',cat,query,page),fetch)
 
@@ -370,7 +371,7 @@ def so_photos(category,cursor):
 def bing_photos(category,cursor):
  cat,query,page=photo_plan(category,cursor)
  def fetch():
-  params=urlencode({'q':query,'first':(page-1)*35,'count':35,'mkt':'en-US','adlt':'strict'},quote_via=quote)
+  params=urlencode({'q':'handsome male model '+query,'first':(page-1)*35,'count':35,'mkt':'en-US','adlt':'strict'},quote_via=quote)
   text=read_public('https://www.bing.com/images/async?'+params).decode('utf-8','replace')
   candidates=parse_bing(text,cat)
   if not candidates and re.search(r'captcha|verify you|challenge',text,re.I):raise ValueError('search verification')
@@ -405,7 +406,7 @@ def parse_flickr(text,category):
 def flickr_photos(category,cursor):
  cat,query,page=photo_plan(category,cursor)
  def fetch():
-  text=read_public('https://www.flickr.com/search/?'+urlencode({'text':query,'page':page,'sort':'relevance'})).decode('utf-8','replace')
+  text=read_public('https://www.flickr.com/search/?'+urlencode({'text':'handsome male model '+query,'page':page,'sort':'relevance'})).decode('utf-8','replace')
   return screen_photography(parse_flickr(text,cat))
  return public_cached(('flickr-photo-v3',cat,query,page),fetch)
 
@@ -436,17 +437,23 @@ try:
 except (OSError,ValueError,TypeError):pass
 
 
+def approved_photo(p):
+ return bool(p.get('reviewed') and p.get('aestheticVersion')==REVIEW_POLICY and p.get('visualChecked'))
+
+
 def catalog_rows(category):
  try:seed=json.loads((Path(__file__).resolve().parent/'photo-catalog.json').read_text())
  except (OSError,ValueError):seed=[]
- with LOCK:rows=list({p['id']:p for p in seed+list(LIVE_CATALOG.values()) if p.get('visualChecked')}.values())
+ with LOCK:rows=list({p['id']:p for p in seed+list(LIVE_CATALOG.values()) if approved_photo(p)}.values())
  return [p for p in rows if category=='全部' or p['category']==category]
 
 
 def remember_photos(rows):
  if not rows:return
  with LOCK:
-  for p in rows:LIVE_CATALOG[p['id']]=p
+  for p in rows:
+   if not approved_photo(p):p={**p,'reviewed':False,'reviewState':'pending','aestheticVersion':REVIEW_POLICY}
+   LIVE_CATALOG[p['id']]=p
   while len(LIVE_CATALOG)>2000:LIVE_CATALOG.popitem(last=False)
   try:
    CATALOG_PATH.parent.mkdir(parents=True,exist_ok=True)
@@ -482,11 +489,13 @@ def discover(channel,category,cursor):
   try:batch,ok=f.result()
   except Exception:batch,ok=[],False
   status=statuses[tasks[f]];status['available']|=ok;status['state']='ready' if status['available'] else 'unavailable'
-  for p in batch:result[p['id']]=p
+  for p in batch:
+   if approved_photo(p):result[p['id']]=p
  # Include newly completed catalog entries from other searches, in stable page order.
  for p in seed_photos(category,cursor):result[p['id']]=p
- rows=list(result.values());rows.sort(key=lambda p:hashlib.sha256((str(cursor)+p['id']).encode()).hexdigest())
- return {'items':rows,'nextCursor':cursor+1,'hasMore':True,'sourceAvailable':bool(rows) or any(s['available'] for s in statuses.values()),
+ rows=list(result.values())
+ more=(cursor+1)*24<len(catalog_rows(category))
+ return {'items':rows,'nextCursor':cursor+1 if more else cursor,'hasMore':more,'sourceAvailable':bool(rows) or any(s['available'] for s in statuses.values()),
   'sources':list(statuses.values()),'catalogCount':len(catalog_rows(category)),
   'mode':'live','checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
 
@@ -495,7 +504,7 @@ class Handler(BaseHTTPRequestHandler):
   body=json.dumps(data,ensure_ascii=False,separators=(',',':')).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_GET(self):
   u=urlparse(self.path)
-  if u.path=='/api/health':return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'visualScreening':visual_filter.ready(),'version':'photography-search-v3','providers':PROVIDERS})
+  if u.path=='/api/health':return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'visualScreening':visual_filter.ready(),'version':'male-editorial-v4','reviewPolicy':REVIEW_POLICY,'providers':PROVIDERS})
   if u.path!='/api/discover':
    name='index.html' if u.path=='/' else u.path.lstrip('/')
    if name not in {'index.html','app.js','style.css','feed-utils.js','sw.js'}:return self.send(404,{'error':'not_found'})

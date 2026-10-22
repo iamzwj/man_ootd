@@ -21,3 +21,9 @@ https://ootd.17design.fun
 `node --test tests/feed.test.mjs`；`python3 -m unittest discover -s tests -p test_server.py`。
 
 GitHub Actions 推送主分支后部署，验证摄影 API。systemd 使用独立 `ootd-photo` 状态目录保存元数据，不保存照片；每次发布同步更新视觉提示词向量。
+
+## 人物形象与精选门槛 v4
+
+以人物形象有吸引力、五官上镜、男模或时尚肖像质感为优先，再检查光线、构图与情绪。自动模型只做初筛，不作为客观颜值判断。只有 `reviewed: true` 且 `aestheticVersion: male-editorial-v4` 的照片可以发布。
+
+旧图库和服务器历史推荐不再绕过本次审核；在线搜图存入候选池，不直接进入前台。浏览器推荐缓存升级，个人收藏保留。精选浏览完会明确提示，审核新图后继续补充，不用普通男性照片凑数量。
