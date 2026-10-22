@@ -6,6 +6,9 @@ Wants=network-online.target
 Type=simple
 User=ubuntu
 Group=ubuntu
+StateDirectory=ootd-photo
+ReadWritePaths=/var/lib/ootd-photo
+Environment=OOTD_CATALOG_PATH=/var/lib/ootd-photo/catalog.json
 Environment=PORT=8794
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=OOTD_VISION_ROOT=/var/lib/ootd/vision

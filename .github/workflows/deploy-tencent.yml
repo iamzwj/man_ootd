@@ -37,7 +37,7 @@ jobs:
           node --test tests/feed.test.mjs
           python3 -m unittest discover -s tests -p 'test_server.py'
           python3 -m py_compile server.py deploy/configure_proxy.py
-          tar -czf /tmp/ootd.tar.gz index.html style.css app.js feed-utils.js sw.js server.py visual_filter.py deploy
+          tar -czf /tmp/ootd.tar.gz index.html style.css app.js feed-utils.js sw.js server.py visual_filter.py photo-catalog.json rejected-photo-fingerprints.json deploy
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
@@ -56,6 +56,9 @@ jobs:
         run: |
           ls -lh /tmp/ootd.tar.gz /tmp/ootd-vision.tar.gz
           scp -v -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 /tmp/ootd.tar.gz "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.tar.gz"
+      - name: Upload updated photography screening prompts
+        run: |
+          scp -o BatchMode=yes -o ConnectTimeout=20 /tmp/ootd-vision-model/prompts.npy "$SERVER_USER@$SERVER_HOST:/home/ubuntu/man_ootd/prompts-$GITHUB_RUN_ID.npy"
       - name: Upload visual screening weights
         timeout-minutes: 8
         run: |
@@ -88,6 +91,8 @@ jobs:
           if [ -f "/home/ubuntu/man_ootd/vision-$run_id.tar.gz" ]; then
             sudo tar -xzf "/home/ubuntu/man_ootd/vision-$run_id.tar.gz" -C /var/lib/ootd/vision --no-same-owner
           fi
+          sudo install -m 644 "/home/ubuntu/man_ootd/prompts-$run_id.npy" /var/lib/ootd/vision/prompts.npy
+          rm -f "/home/ubuntu/man_ootd/prompts-$run_id.npy"
           sudo chmod 644 /var/lib/ootd/vision/*
           if [ ! -x /opt/ootd-venv/bin/python ]; then
             sudo python3 -m venv /opt/ootd-venv || {
@@ -132,6 +137,6 @@ jobs:
           curl --fail --silent --show-error https://ootd.17design.fun/api/health | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["mode"] == "live" and d["imageStorage"] is False'
           curl --fail --silent --show-error 'https://ootd.17design.fun/app.js?v=4' > /tmp/deployed-app.js
           cmp app.js /tmp/deployed-app.js
-          curl --fail --silent --show-error --max-time 40 'https://ootd.17design.fun/api/discover?channel=outfit&cursor=0' > /tmp/live-test.json
+          curl --fail --silent --show-error --max-time 40 'https://ootd.17design.fun/api/discover?channel=photo&cursor=0' > /tmp/live-test.json
           python3 -c 'import json; d=json.load(open("/tmp/live-test.json")); print("Live images:",len(d["items"])); assert d["items"] and all(p.get("visualChecked") for p in d["items"])'
           curl --fail --silent --show-error https://app.17design.fun/api/health

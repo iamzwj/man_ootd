@@ -1,4 +1,4 @@
-import html,json,sys,unittest
+import html,json,sys,unittest, tempfile, socket
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
 import server
@@ -48,7 +48,8 @@ class DomesticTests(unittest.TestCase):
   response=json.dumps({'result':'SUCCESS','data':{'post_list':[row]}}).encode()
   with patch.object(server,'read_public',return_value=response) as read,patch.object(server.visual_filter,'ready',return_value=True),patch.object(server.visual_filter,'accept',return_value=False):
    self.assertEqual(server.tuchong('outfit','全部',1),([],True))
-   self.assertIn('page=2',read.call_args[0][0])
+   self.assertIn('page=1',read.call_args[0][0])
+   self.assertIn('query=',read.call_args[0][0])
  def test_visitor_page_is_not_a_successful_source(self):
   with patch.object(server,'read_public',return_value=b'<html>visitor login</html>'):
    self.assertEqual(server.dewu('outfit','全部',0),([],False))
@@ -56,10 +57,36 @@ class DomesticTests(unittest.TestCase):
   with patch.object(server,'read_public') as read:
    self.assertEqual(server.dewu('outfit','全部',len(server.DEWU_TOPICS)),([],True))
    read.assert_not_called()
- def test_failed_source_does_not_hide_working_sources(self):
-  with patch.object(server,'duitang',return_value=([],False)),patch.object(server,'tuchong',return_value=([{'id':'x','engagement':{}}],True)),patch.object(server,'dewu',return_value=([],False)):
-   result=server.discover('outfit','全部',0)
-   self.assertTrue(result['sourceAvailable']);self.assertEqual(result['items'][0]['id'],'x')
-   self.assertNotIn('StyleHint',[s['name'] for s in result['sources']])
+class PhotographyTests(unittest.TestCase):
+ def setUp(self):
+  server.CACHE.clear();server.ACTIVE_SEARCHES.clear()
+ def test_outfit_is_no_longer_a_supported_channel(self):
+  with self.assertRaises(ValueError):server.discover('outfit','全部',0)
+ def test_public_url_rejects_local_credentials_and_ports(self):
+  for url in ['https://127.0.0.1/a','https://[::1]/a','https://169.254.169.254/a','https://user:pass@example.com/a','https://example.com:8080/a','https://foo.internal/a','http://example.com/a']:
+   self.assertFalse(server.public_url(url),url)
+  with patch.object(socket,'getaddrinfo',return_value=[(2,1,6,'',('10.0.0.1',443))]):
+   self.assertFalse(server.public_url('https://example.com/a',resolve=True))
+ def test_so_keeps_real_source_and_image_not_search_thumbnail(self):
+  row={'title':'男生电影感摄影','link':'http://www.douyin.com/note/123','img':'https://images.example.com/photo.jpg','width':'800','height':'1200','thumb':'https://thumb.example.com/small.jpg'}
+  rows=server.parse_so({'list':[row]},'电影人像');self.assertEqual(rows[0]['source'],'抖音');self.assertEqual(rows[0]['image'],row['img']);self.assertNotIn('ranking',rows[0]);self.assertEqual(rows[0]['url'],'https://www.douyin.com/note/123')
+ def test_real_search_page_and_variant_both_advance(self):
+  plans=[server.photo_plan('电影人像',i) for i in range(12)]
+  self.assertEqual(len(set(plans)),12);self.assertEqual(plans[4][2],2)
+ def test_failed_live_sources_still_return_verified_catalog(self):
+  row={'id':'sample','category':'电影人像','channel':'photo','visualChecked':True}
+  with patch.object(server,'catalog_rows',return_value=[row]),patch.object(server,'remember_photos'),patch.object(server,'bing_photos',return_value=([],False)),patch.object(server,'flickr_photos',return_value=([],False)),patch.object(server,'so_photos',return_value=([],False)):
+   result=server.discover('photo','电影人像',0)
+   self.assertTrue(result['sourceAvailable']);self.assertEqual(result['items'],[row])
+ def test_content_fingerprint_deduplicates_different_image_addresses(self):
+  rows=[{'id':'one','image':'https://a.example.com/1.jpg'},{'id':'two','image':'https://b.example.com/2.jpg'}]
+  with patch.object(server.visual_filter,'accept',return_value=True),patch.object(server.visual_filter,'metadata',return_value={'fingerprint':'abcdef','width':800,'height':1200}):
+   result=server.screen_photography(rows)
+   self.assertEqual(len({p['id'] for p in result}),1)
+ def test_catalog_pages_have_no_repetition(self):
+  rows=[{'id':str(i),'visualChecked':True,'category':'电影人像'} for i in range(100)]
+  with patch.object(server,'catalog_rows',return_value=rows):
+   ids=[p['id'] for c in range(5) for p in server.seed_photos('全部',c)]
+   self.assertEqual(len(ids),100);self.assertEqual(len(set(ids)),100)
 
 if __name__=='__main__':unittest.main()

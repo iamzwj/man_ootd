@@ -3,6 +3,7 @@ import concurrent.futures as cf
 import hashlib, html, json, os, re, threading, time, subprocess
 from pathlib import Path
 import mimetypes
+import socket, ipaddress
 import visual_filter
 from collections import OrderedDict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -31,16 +32,17 @@ BAD=re.compile(r'\b(?:beard|bearded|women|woman|girls?|nude|shirtless|collage|dr
 MALE=re.compile(r'\b(?:men|man|mens|male|boy|boys|menswear|cityboy|gorpcore)\b|男|メンズ|男性|남자|남성',re.I)
 STYLE=re.compile(r'\b(?:outfit|outfits|streetwear|menswear|casual|cityboy|gorpcore|fashion|clothing)\b|穿搭|コーデ|스타일',re.I)
 SCENES={'酒吧夜色':r'bar|night|drink|酒吧','城市街拍':r'street|urban|city|街','海边日落':r'beach|sea|ocean|summer|海','咖啡馆':r'cafe|café|coffee|咖啡','公园绿地':r'park|picnic|forest|garden|公园','天台屋顶':r'rooftop|roof|天台|屋顶','室内光影':r'window|indoor|bedroom|room|窗|室内','旅行途中':r'travel|train|journey|trip|旅行'}
-POOL=cf.ThreadPoolExecutor(max_workers=6)
+POOL=cf.ThreadPoolExecutor(max_workers=8)
 CACHE=OrderedDict();LOCK=threading.Lock();GATE=threading.BoundedSemaphore(2)
-VISUAL_POOL=cf.ThreadPoolExecutor(max_workers=4)
+VISUAL_POOL=cf.ThreadPoolExecutor(max_workers=8)
 
 def read_public(url):
- result=subprocess.run(['curl','--http1.1','--fail','--silent','--show-error','--connect-timeout','3','--max-time','5','--retry','1','--retry-delay','0','--retry-all-errors','-H','Accept-Region: jp','-H','Accept-Language: ja',url],capture_output=True,timeout=11,check=True)
+ result=subprocess.run(['curl','--http1.1','--fail','--silent','--show-error','--connect-timeout','3','--max-time','5','--retry','1','--retry-delay','0','--retry-all-errors','-L','--compressed','-A','Mozilla/5.0','-H','Accept-Language: en-US,en;q=0.8,zh-CN;q=0.7',url],capture_output=True,timeout=11,check=True)
  if len(result.stdout)>4_000_000:raise ValueError('response too large')
  return result.stdout
 
 def read_image(url):
+ if not public_url(url,resolve=True):raise ValueError('non-public image URL')
  result=subprocess.run(['curl','--http1.1','--fail','--silent','--show-error','--connect-timeout','2','--max-time','3','--max-filesize','4000000',url],capture_output=True,timeout=4,check=True)
  if len(result.stdout)>4_000_000:raise ValueError('image too large')
  return result.stdout
@@ -168,9 +170,7 @@ def duitang(job,cursor):
    if not w or not h or min(w,h)<280 or w/h>1.7 or w/h<.48:continue
    uid=identity(image);result.append({'id':uid,'imageKey':uid,'image':image,'originalImage':image,'url':'https://www.duitang.com/blog/?id='+str(row['id']),'source':'堆糖','engagement':engagement(row),'originalTitle':msg[:350],'title':cat+' · '+('日常搭配' if ch=='outfit' else '生活摄影'),'channel':ch,'category':cat,'tags':[],'width':w,'height':h,'collectedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())})
   if visual_filter.ready():
-   candidates=sorted(result,key=heat_value,reverse=True)[:12]
-   checks=list(VISUAL_POOL.map(lambda p:visual_filter.accept(p['image'],read_image),candidates))
-   result=[{**p,'visualChecked':True} for p,ok in zip(candidates,checks) if ok]
+   result=screen_photography(sorted(result,key=heat_value,reverse=True)[:12])
   with LOCK:
    CACHE[cachekey]=(time.monotonic(),result);CACHE.move_to_end(cachekey)
    while len(CACHE)>128:CACHE.popitem(last=False)
@@ -224,16 +224,14 @@ def domestic_item(image, page, label, caption, tags, channel, category, width, h
 
 
 def screen_domestic(rows):
- candidates=sorted(rows,key=heat_value,reverse=True)[:12]
- checks=list(VISUAL_POOL.map(lambda p:visual_filter.accept(p['image'],read_image),candidates))
- return [{**p,'visualChecked':True} for p,ok in zip(candidates,checks) if ok]
+ return screen_photography(sorted(rows,key=heat_value,reverse=True)[:12])
 
 
 def tuchong(channel,category,cursor):
  def fetch():
   # Search original posts, retaining provider page numbers and post URLs.
-  query='男生穿搭' if channel=='outfit' else '男生'
-  params=urlencode({'query':query,'page':cursor+1,'count':20})
+  query=['男生人像','男生写真','男士摄影','男人肖像','男生胶片'][cursor%5]
+  params=urlencode({'query':query,'page':cursor//5+1,'count':20})
   data=json.loads(read_public('https://tuchong.com/rest/search/posts?'+params))
   posts=data.get('data',{}).get('post_list')
   if data.get('result')!='SUCCESS' or not isinstance(posts,list):raise ValueError('invalid tuchong response')
@@ -283,36 +281,229 @@ def dewu(channel,category,cursor):
   return screen_domestic(result)
  return public_cached(('dewu',channel,category,cursor),fetch)
 
+PHOTO_QUERIES = {
+ '电影人像': ['cinematic male portrait photography', 'moody man portrait natural light', 'editorial male portrait film photography', '男生 电影感 氛围感 人像 摄影'],
+ '黑白情绪': ['black and white man portrait photography', 'male monochrome cinematic portrait', '男生 黑白 情绪 写真'],
+ **TOPICS['photo']}
+PROVIDERS = ['360图片', '必应图片', 'Flickr', '堆糖', '图虫']
+
+
+def public_url(url, resolve=False):
+ try:
+  u=urlparse(url);host=u.hostname or ''
+  if u.scheme!='https' or u.username or u.password or not host or u.port not in (None,443):return False
+  if host=='localhost' or '.' not in host or host.endswith(('.local','.internal','.localhost')):return False
+  try:
+   if not ipaddress.ip_address(host).is_global:return False
+  except ValueError:pass
+  if resolve:
+   addresses=socket.getaddrinfo(host,443,type=socket.SOCK_STREAM)
+   if not addresses or any(not ipaddress.ip_address(a[4][0]).is_global for a in addresses):return False
+  return True
+ except (ValueError,OSError):return False
+
+
+def photo_plan(category,cursor):
+ cats=list(PHOTO_QUERIES) if category=='全部' else [category]
+ cat=cats[cursor%len(cats)]
+ # Every full pass advances a real provider page; variants change between passes.
+ cycle=cursor//len(cats);variants=PHOTO_QUERIES[cat]
+ return cat,variants[cycle%len(variants)],cycle//len(variants)+1
+
+
+def photography_item(image,page,caption,category,provider,width=None,height=None,author='',metrics=None):
+ if not public_url(image) or not public_url(page):return None
+ if re.search(r'nude|naked|shirtless|色情|裸照|AI.generated|AI.image|AI生成|插画|动漫|cartoon|illustration|prompt|midjourney',caption+' '+page,re.I):return None
+ if isinstance(width,(int,float)) and isinstance(height,(int,float)) and (min(width,height)<280 or not .45<=width/height<=1.9):return None
+ host=(urlparse(page).hostname or '').removeprefix('www.')
+ label=next((label for domain,label in [('pinterest.com','Pinterest'),('pexels.com','Pexels'),('unsplash.com','Unsplash'),('pixabay.com','Pixabay'),('flickr.com','Flickr'),('tuchong.com','图虫'),('duitang.com','堆糖'),('poco.cn','POCO'),('weibo.com','微博'),('xiaohongshu.com','小红书'),('douyin.com','抖音')] if host==domain or host.endswith('.'+domain)),host)
+ uid=identity(image)
+ return {'id':uid,'imageKey':uid,'image':image,'originalImage':image,'url':page,'source':label,'discoveryProvider':provider,
+  'originalTitle':html.unescape(caption)[:1000],'title':category+' · 氛围摄影','channel':'photo','category':category,
+  'tags':[],'author':author,'width':width or 800,'height':height or 1000,'engagement':metrics or {},
+  'collectedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
+
+
+def parse_bing(text,category):
+ rows={}
+ for raw in re.findall(r'\bm="([^"]+)"',text):
+  try:d=json.loads(html.unescape(raw))
+  except (ValueError,TypeError):continue
+  if not MALE.search(str(d.get('t') or d.get('desc') or '')):continue
+  item=photography_item(d.get('murl',''),d.get('purl',''),d.get('t') or d.get('desc') or '',category,'必应图片',d.get('ow'),d.get('oh'))
+  if item:rows[item['id']]=item
+ return list(rows.values())
+
+
+SO_QUERIES={
+ '电影人像':['男生 电影感 摄影','男士 氛围感 写真','男性 情绪 人像'],
+ '黑白情绪':['男生 黑白 人像 摄影','男士 黑白 情绪 写真','男性 黑白 肖像'],
+ **{cat:terms for cat,terms in DUITANG_QUERIES.items() if cat in TOPICS['photo']}}
+
+
+def parse_so(data,category):
+ if not isinstance(data.get('list'),list):raise ValueError('search unavailable')
+ result=[]
+ for row in data['list']:
+  page=row.get('link','')
+  if page.startswith('http://'):page='https://'+page[7:]
+  try:w,h=int(row.get('width') or 0),int(row.get('height') or 0)
+  except (TypeError,ValueError):continue
+  caption=html.unescape(re.sub('<[^>]+>',' ',row.get('title') or ''))
+  if not MALE.search(caption):continue
+  image=row.get('img') or ''
+  item=photography_item(image,page,caption,category,'360图片',w,h)
+  if item:
+   item['imageDelivery']='搜索结果图片地址';result.append(item)
+ return result
+
+
+def so_photos(category,cursor):
+ cats=list(SO_QUERIES) if category=='全部' else [category];cat=cats[cursor%len(cats)]
+ cycle=cursor//len(cats);terms=SO_QUERIES[cat];query=terms[cycle%len(terms)];page=cycle//len(terms)
+ def fetch():
+  data=json.loads(read_public('https://image.so.com/j?'+urlencode({'q':query,'sn':page*30,'pn':30},quote_via=quote)))
+  return screen_photography(parse_so(data,cat))
+ return public_cached(('360-photo-v3',cat,query,page),fetch)
+
+
+def bing_photos(category,cursor):
+ cat,query,page=photo_plan(category,cursor)
+ def fetch():
+  params=urlencode({'q':query,'first':(page-1)*35,'count':35,'mkt':'en-US','adlt':'strict'},quote_via=quote)
+  text=read_public('https://www.bing.com/images/async?'+params).decode('utf-8','replace')
+  candidates=parse_bing(text,cat)
+  if not candidates and re.search(r'captcha|verify you|challenge',text,re.I):raise ValueError('search verification')
+  return screen_photography(candidates)
+ return public_cached(('bing-photo-v3',cat,query,page),fetch)
+
+
+def parse_flickr(text,category):
+ marker='modelExport: '
+ if marker not in text:raise ValueError('flickr search unavailable')
+ data,_=json.JSONDecoder().raw_decode(text.split(marker,1)[1])
+ rows=data['main']['search-photos-lite-models'][0]['data']['photos']['data']['_data']
+ result=[]
+ for wrapper in rows:
+  if not isinstance(wrapper,dict):continue
+  row=wrapper.get('data',{})
+  if not isinstance(row,dict) or not row.get('isPublic'):continue
+  sizes=row.get('sizes',{}).get('data',{})
+  size=next((sizes[k]['data'] for k in ['l','c','z'] if k in sizes),{})
+  image=size.get('displayUrl','')
+  if image.startswith('//'):image='https:'+image
+  if urlparse(image).hostname!='live.staticflickr.com':continue
+  owner=str(row.get('ownerNsid',''));photo_id=str(row.get('id',''))
+  if not re.fullmatch(r'[0-9]+@N[0-9]+',owner) or not photo_id.isdigit():continue
+  caption=str(row.get('title') or '')+' '+re.sub('<[^>]+>',' ',str(row.get('description') or ''))
+  item=photography_item(image,'https://www.flickr.com/photos/'+owner+'/'+photo_id+'/',caption,category,'Flickr',size.get('width'),size.get('height'),row.get('username',''),{'favorites':count_value(row,'faveCount')})
+  if item:
+   item['licenseCode']=row.get('license');result.append(item)
+ return result
+
+
+def flickr_photos(category,cursor):
+ cat,query,page=photo_plan(category,cursor)
+ def fetch():
+  text=read_public('https://www.flickr.com/search/?'+urlencode({'text':query,'page':page,'sort':'relevance'})).decode('utf-8','replace')
+  return screen_photography(parse_flickr(text,cat))
+ return public_cached(('flickr-photo-v3',cat,query,page),fetch)
+
+
+try:REJECTED_FINGERPRINTS=set(json.loads((Path(__file__).resolve().parent/'rejected-photo-fingerprints.json').read_text()))
+except (OSError,ValueError):REJECTED_FINGERPRINTS=set()
+
+
+def screen_photography(rows):
+ # Run each actual image through the model; search titles alone cannot establish subject.
+ candidates=list({p['id']:p for p in rows}.values())[:30]
+ checks=list(VISUAL_POOL.map(lambda p:visual_filter.accept(p['image'],read_image),candidates))
+ result=[]
+ for p,ok in zip(candidates,checks):
+  if not ok:continue
+  meta=visual_filter.metadata(p['image']);fingerprint=meta.pop('fingerprint',None)
+  if fingerprint in REJECTED_FINGERPRINTS:continue
+  result.append({**p,**meta,'visualChecked':True,**({'fingerprint':fingerprint,'id':'photo-'+fingerprint,'imageKey':'photo-'+fingerprint} if fingerprint else {})})
+ return result
+
+
+CATALOG_PATH=Path(os.environ.get('OOTD_CATALOG_PATH','/tmp/ootd-photo-catalog-v3.json'))
+LIVE_CATALOG=OrderedDict()
+ACTIVE_SEARCHES={}
+try:
+ for p in json.loads(CATALOG_PATH.read_text()):
+  if p.get('visualChecked'):LIVE_CATALOG[p['id']]=p
+except (OSError,ValueError,TypeError):pass
+
+
+def catalog_rows(category):
+ try:seed=json.loads((Path(__file__).resolve().parent/'photo-catalog.json').read_text())
+ except (OSError,ValueError):seed=[]
+ with LOCK:rows=list({p['id']:p for p in seed+list(LIVE_CATALOG.values()) if p.get('visualChecked')}.values())
+ return [p for p in rows if category=='全部' or p['category']==category]
+
+
+def remember_photos(rows):
+ if not rows:return
+ with LOCK:
+  for p in rows:LIVE_CATALOG[p['id']]=p
+  while len(LIVE_CATALOG)>2000:LIVE_CATALOG.popitem(last=False)
+  try:
+   CATALOG_PATH.parent.mkdir(parents=True,exist_ok=True)
+   temp=CATALOG_PATH.with_suffix('.tmp');temp.write_text(json.dumps(list(LIVE_CATALOG.values()),ensure_ascii=False));temp.replace(CATALOG_PATH)
+  except OSError:pass
+
+
+def seed_photos(category,cursor):return catalog_rows(category)[cursor*24:(cursor+1)*24]
+
+
 def discover(channel,category,cursor):
- jobs=plan(channel,category,cursor)
- tasks={POOL.submit(duitang,j,cursor):'堆糖' for j in jobs}
- tasks[POOL.submit(tuchong,channel,category,cursor)]='图虫'
- if channel=='outfit' and cursor<len(DEWU_TOPICS):tasks[POOL.submit(dewu,channel,category,cursor)]='得物'
- done,pending=cf.wait(tasks,timeout=30)
- for f in pending:f.cancel()
- result={};statuses={name:False for name in dict.fromkeys(tasks.values())}
+ if channel!='photo':raise ValueError('photography only')
+ def collect(fn,args):
+  rows,ok=fn(*args);remember_photos(rows);return rows,ok
+ specs=[('360图片',so_photos,(category,cursor)),('必应图片',bing_photos,(category,cursor)),('Flickr',flickr_photos,(category,cursor))]
+ if category in TOPICS['photo'] or category=='全部':
+  specs += [('堆糖',duitang,(j,cursor)) for j in plan('photo',category,cursor)]
+  specs += [('图虫',tuchong,('photo',category,cursor))]
+ tasks={}
+ with LOCK:
+  for name,fn,args in specs:
+   key=(name,str(args))
+   # Bound concurrent searches across clients, including refresh and repeated scroll.
+   if key not in ACTIVE_SEARCHES and sum(not f.done() for f in ACTIVE_SEARCHES.values())<6:
+    ACTIVE_SEARCHES[key]=POOL.submit(collect,fn,args)
+   if key in ACTIVE_SEARCHES:tasks[ACTIVE_SEARCHES[key]]=name
+  for key in list(ACTIVE_SEARCHES):
+   if len(ACTIVE_SEARCHES)>96 and ACTIVE_SEARCHES[key].done():del ACTIVE_SEARCHES[key]
+ existing=seed_photos(category,cursor)
+ done,pending=cf.wait(tasks,timeout=.15 if existing else 28) if tasks else (set(),set())
+ result={p['id']:p for p in existing};statuses={name:{'name':name,'available':False,'state':'fetching'} for name,_,_ in specs}
  for f in done:
   try:batch,ok=f.result()
-  except Exception:continue
-  statuses[tasks[f]]|=ok
+  except Exception:batch,ok=[],False
+  status=statuses[tasks[f]];status['available']|=ok;status['state']='ready' if status['available'] else 'unavailable'
   for p in batch:result[p['id']]=p
- rows=sorted(result.values(),key=lambda p:(bool(p.get('ranking')),heat_value(p)),reverse=True)
- return {'items':rows,'nextCursor':cursor+1,'hasMore':True,'sourceAvailable':any(statuses.values()),'sources':[{'name':name,'available':ok} for name,ok in statuses.items()],'mode':'live','checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
+ # Include newly completed catalog entries from other searches, in stable page order.
+ for p in seed_photos(category,cursor):result[p['id']]=p
+ rows=list(result.values());rows.sort(key=lambda p:hashlib.sha256((str(cursor)+p['id']).encode()).hexdigest())
+ return {'items':rows,'nextCursor':cursor+1,'hasMore':True,'sourceAvailable':bool(rows) or any(s['available'] for s in statuses.values()),
+  'sources':list(statuses.values()),'catalogCount':len(catalog_rows(category)),
+  'mode':'live','checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
 
 class Handler(BaseHTTPRequestHandler):
  def send(self,status,data):
   body=json.dumps(data,ensure_ascii=False,separators=(',',':')).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_GET(self):
   u=urlparse(self.path)
-  if u.path=='/api/health':return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'visualScreening':visual_filter.ready(),'version':'domestic-sources-v2','providers':PROVIDERS})
+  if u.path=='/api/health':return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'visualScreening':visual_filter.ready(),'version':'photography-search-v3','providers':PROVIDERS})
   if u.path!='/api/discover':
    name='index.html' if u.path=='/' else u.path.lstrip('/')
    if name not in {'index.html','app.js','style.css','feed-utils.js','sw.js'}:return self.send(404,{'error':'not_found'})
    body=(Path(__file__).resolve().parent/name).read_bytes();self.send_response(200);self.send_header('Content-Type',mimetypes.guess_type(name)[0] or 'application/octet-stream');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
-  q=parse_qs(u.query);channel=q.get('channel',['outfit'])[0];category=q.get('category',['全部'])[0]
+  q=parse_qs(u.query);channel=q.get('channel',['photo'])[0];category=q.get('category',['全部'])[0]
   try:cursor=int(q.get('cursor',['0'])[0])
   except ValueError:return self.send(400,{'error':'invalid_cursor'})
-  if channel not in TOPICS or category!='全部' and category not in TOPICS[channel] or not 0<=cursor<=100000:return self.send(400,{'error':'invalid_filter'})
+  if channel!='photo' or category!='全部' and category not in PHOTO_QUERIES or not 0<=cursor<=100000:return self.send(400,{'error':'invalid_filter'})
   if not GATE.acquire(blocking=False):return self.send(429,{'error':'busy','retryAfter':3})
   try:
    data=discover(channel,category,cursor);self.send(200 if data['sourceAvailable'] else 503,data)

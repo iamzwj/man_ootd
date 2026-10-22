@@ -7,28 +7,34 @@ from collections import OrderedDict
 from pathlib import Path
 
 PROMPTS = [
-    'a real photograph of a young Asian man wearing a casual streetwear outfit',
-    'a real photograph of a young man wearing menswear outdoors',
-    'a real photograph of a young man in everyday life',
-    'a real photograph of a male fashion model wearing casual clothes',
-    'a real photograph of a woman wearing womenswear',
-    'a real photograph of a girl wearing a fashion outfit',
+    'a cinematic editorial photograph of an adult man with atmospheric lighting',
+    'an artistic photograph of a man outdoors with beautiful natural light and composition',
+    'a moody film photograph of a man in everyday life',
+    'a fine art portrait photograph of an adult man with expressive light and shadows',
+    'a real portrait photograph of a woman',
+    'a real photograph of a girl',
     'an anime drawing of a boy, cartoon illustration',
     'an anime drawing of a girl, cartoon illustration',
     'a drawing, painting, comic, or digital illustration of a person',
     'a 3D rendered game character, a doll or a virtual person',
-    'a photograph of a man with a large thick beard',
-    'a photograph of an elderly or middle aged man in a business suit',
+    'a plain corporate ID passport photograph with flat lighting',
+    'a generic commercial advertising stock photograph of an office worker',
     'a product photograph of clothing without a person, flat lay or mannequin',
     'a collage of multiple outfits and products, a fashion infographic',
     'a landscape photograph without a person',
     'a photograph of a child',
+    'a cinematic artistic portrait photograph of a woman with dramatic lighting',
+    'an artistic photograph of a woman in a park or garden',
+    'a photograph of a couple, a man and a woman together',
+    'a photograph of food, a meal, or a restaurant table',
+    'a screenshot with text or a fashion magazine cover',
 ]
 ROOT = Path(os.environ.get('OOTD_VISION_ROOT', '/var/lib/ootd/vision'))
 _session = None
 _vectors = None
 _lock = threading.Lock()
 _cache = OrderedDict()
+_metadata = {}
 
 
 def ready():
@@ -56,6 +62,8 @@ def inspect_bytes(body):
     with Image.open(io.BytesIO(body)) as source:
         img = ImageOps.exif_transpose(source).convert('RGB')
         w, h = img.size
+        small = list(img.convert("L").resize((9, 8)).getdata())
+        fingerprint = format(sum((small[y*9+x] > small[y*9+x+1]) << (y*8+x) for y in range(8) for x in range(8)), "016x")
         scale = 224 / min(w, h)
         img = img.resize((round(w * scale), round(h * scale)), Image.Resampling.BICUBIC)
         left, top = (img.width - 224) // 2, (img.height - 224) // 2
@@ -71,7 +79,7 @@ def inspect_bytes(body):
     male = float(max(scores[:4]))
     other = float(max(scores[4:]))
     # Positive margin rather than blindly accepting the top label.
-    return male >= .22 and male - other >= .018, round(male - other, 4), PROMPTS[int(np.argmax(scores))]
+    return male >= .22 and male - other >= .012, round(male - other, 4), PROMPTS[int(np.argmax(scores))], fingerprint, w, h
 
 
 def accept(url, read):
@@ -82,7 +90,9 @@ def accept(url, read):
     if not ready():
         return False
     try:
-        accepted, margin, label = inspect_bytes(read(url))
+        accepted, margin, label, fingerprint, width, height = inspect_bytes(read(url))
+        with _lock:
+            _metadata[url] = {"fingerprint": fingerprint, "width": width, "height": height}
         print(json.dumps({'visual': accepted, 'margin': margin, 'label': label}), flush=True)
     except Exception as exc:
         print('visual screening unavailable: ' + type(exc).__name__, flush=True)
@@ -92,3 +102,8 @@ def accept(url, read):
         while len(_cache) > 2500:
             _cache.popitem(last=False)
     return accepted
+
+
+def metadata(url):
+    with _lock:
+        return dict(_metadata.get(url, {}))
