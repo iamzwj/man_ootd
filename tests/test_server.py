@@ -79,12 +79,12 @@ class PhotographyTests(unittest.TestCase):
    result=server.discover('photo','电影人像',0)
    self.assertTrue(result['sourceAvailable']);self.assertEqual(result['items'],[row])
  def test_content_fingerprint_deduplicates_different_image_addresses(self):
-  rows=[{'id':'one','image':'https://a.example.com/1.jpg'},{'id':'two','image':'https://b.example.com/2.jpg'}]
+  rows=[{'id':'one','image':'https://a.example.com/1.jpg','url':'https://www.douyin.com/note/1'},{'id':'two','image':'https://b.example.com/2.jpg','url':'https://tuchong.com/2/'}]
   with patch.object(server.visual_filter,'accept',return_value=True),patch.object(server.visual_filter,'metadata',return_value={'fingerprint':'abcdef','width':800,'height':1200}):
    result=server.screen_photography(rows)
    self.assertEqual(len({p['id'] for p in result}),1)
  def test_only_current_editorial_approval_is_published(self):
-  approved={'id':'approved','category':'电影人像','visualChecked':True,'reviewed':True,'aestheticVersion':server.REVIEW_POLICY}
+  approved={'url':'https://tuchong.com/1/','id':'approved','category':'电影人像','visualChecked':True,'reviewed':True,'aestheticVersion':server.REVIEW_POLICY}
   pending={**approved,'id':'pending','reviewed':False}
   old={**approved,'id':'old','aestheticVersion':'old-policy'}
   with patch.object(Path,'read_text',return_value=json.dumps([approved,pending,old])),patch.object(server,'LIVE_CATALOG',{}):
@@ -93,7 +93,7 @@ class PhotographyTests(unittest.TestCase):
   pending={'id':'pending','category':'电影人像','visualChecked':True}
   with patch.object(server,'catalog_rows',return_value=[]),patch.object(server,'remember_photos'),patch.object(server,'bing_photos',return_value=([pending],True)),patch.object(server,'flickr_photos',return_value=([],False)),patch.object(server,'so_photos',return_value=([],False)):
    result=server.discover('photo','电影人像',0)
-   self.assertEqual(result['items'],[]);self.assertFalse(result['hasMore']);self.assertEqual(result['nextCursor'],0)
+   self.assertEqual(result['items'],[]);self.assertTrue(result['hasMore']);self.assertEqual(result['nextCursor'],1)
  def test_catalog_pages_have_no_repetition(self):
   rows=[{'id':str(i),'visualChecked':True,'category':'电影人像'} for i in range(100)]
   with patch.object(server,'catalog_rows',return_value=rows):
@@ -112,5 +112,24 @@ class PhotographyTests(unittest.TestCase):
    result=server.photographer_page('全部',0,'Unknown')
    self.assertEqual(result['items'],[]);self.assertFalse(result['hasMore'])
    self.assertTrue(result['sourceAvailable']);self.assertEqual(result['catalogCount'],0)
+
+class DomesticContinuousTests(unittest.TestCase):
+ def test_domestic_domain_boundary(self):
+  for url in ['https://douyin.com/note/1','https://a.tuchong.com/1','https://www.zcool.com.cn/work/1']:
+   self.assertTrue(server.domestic_source(url))
+  for url in ['https://flickr.com/photos/1','https://douyin.com.evil.test/1','https://evil-douyin.com/1']:
+   self.assertFalse(server.domestic_source(url))
+ def test_nudity_captions_are_rejected(self):
+  for title in ['男生裸照','男性赤膊人像','男模泳裤摄影','男士内裤写真','shirtless man portrait']:
+   self.assertIsNone(server.photography_item('https://image.example.com/a.jpg','https://douyin.com/note/1',title,'电影人像','360'))
+ def test_empty_page_advances_search_instead_of_repeating_last_page(self):
+  with patch.object(server,'catalog_rows',return_value=[]),patch.object(server,'remember_photos'),patch.object(server,'so_photos',return_value=([],True)):
+   result=server.discover('photo','电影人像',999)
+   self.assertEqual(result['nextCursor'],1000);self.assertTrue(result['hasMore']);self.assertEqual(result['items'],[])
+ def test_automated_screening_publishes_domestic_images_only(self):
+  rows=[dict(id='a',image='https://example.com/a.jpg',url='https://douyin.com/note/1'),dict(id='b',image='https://example.com/b.jpg',url='https://flickr.com/photos/1')]
+  with patch.object(server.visual_filter,'accept',return_value=True),patch.object(server.visual_filter,'metadata',return_value={'fingerprint':'safe-test'}):
+   result=server.screen_photography(rows)
+   self.assertEqual(len(result),1);self.assertTrue(server.approved_photo(result[0]));self.assertEqual(result[0]['reviewState'],'automated-screened')
 
 if __name__=='__main__':unittest.main()

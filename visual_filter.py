@@ -7,10 +7,14 @@ from collections import OrderedDict
 from pathlib import Path
 
 PROMPTS = [
-    'a cinematic editorial portrait of a handsome adult male model with attractive facial features and atmospheric lighting',
-    'a stylish editorial photograph of a handsome adult man with beautiful facial features in natural light',
-    'a moody film portrait of a handsome young adult male model with a captivating face',
-    'an elegant portrait of an attractive adult male fashion model with expressive eyes and refined light',
+    'a cinematic photograph of a handsome adult Chinese man wearing a shirt and jacket, atmospheric lighting',
+    'a stylish portrait photograph of a handsome adult Asian man fully dressed in clothing in natural light',
+    'a moody film photograph of a handsome adult Chinese man wearing a sweater',
+    'an elegant portrait of a handsome adult Asian man wearing a suit with refined lighting',
+    'a nude naked person with exposed genitals',
+    'a shirtless bare chested man with exposed torso and abs',
+    'a man wearing only underwear or swimwear',
+    'an erotic photograph of a naked male model',
     'a real portrait photograph of a woman',
     'a real photograph of a girl',
     'an anime drawing of a boy, cartoon illustration',
