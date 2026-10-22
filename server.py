@@ -421,7 +421,7 @@ def screen_photography(rows):
  result=[]
  for p,ok in zip(candidates,checks):
   if not ok:continue
-  meta=visual_filter.metadata(p['image']);fingerprint=meta.pop('fingerprint',None)
+  meta=dict(visual_filter.metadata(p['image']));fingerprint=meta.pop('fingerprint',None)
   if fingerprint in REJECTED_FINGERPRINTS:continue
   result.append({**p,**meta,'visualChecked':True,**({'fingerprint':fingerprint,'id':'photo-'+fingerprint,'imageKey':'photo-'+fingerprint} if fingerprint else {})})
  return result
