@@ -2,12 +2,12 @@ import {CATEGORIES,NOTE,normalizeItems,filterItems,heatText} from './feed-utils.
 const $=s=>document.querySelector(s);const storage={get(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let channel='photo',category='全部',items=[],queue=[],shown=0,savedOnly=false,busy=false,viewIndex=-1,epoch=0,emptyPages=0,hasMore=true,refreshPending=false,columns=[],heights=[],requestController;
 
-const streamCache=new Map(Object.entries(storage.get('ootd-stream-cache-domestic-clothed-v7',{})));let activeStream=null,autoLoadEnabled=true;
-function cacheCurrent(){if(!activeStream||(!items.length&&!emptyPages))return;streamCache.set(activeStream,{items:items.slice(),emptyPages,hasMore,status:$('#feedStatus').textContent});const recent=[...streamCache.entries()].slice(-16).map(([k,v])=>[k,{...v,items:v.items.slice(-120)}]);storage.set('ootd-stream-cache-domestic-clothed-v7',Object.fromEntries(recent));}
+const streamCache=new Map(Object.entries(storage.get('ootd-stream-cache-domestic-lifestyle-v8',{})));let activeStream=null,autoLoadEnabled=true;
+function cacheCurrent(){if(!activeStream||(!items.length&&!emptyPages))return;streamCache.set(activeStream,{items:items.slice(),emptyPages,hasMore,status:$('#feedStatus').textContent});const recent=[...streamCache.entries()].slice(-16).map(([k,v])=>[k,{...v,items:v.items.slice(-120)}]);storage.set('ootd-stream-cache-domestic-lifestyle-v8',Object.fromEntries(recent));}
 
-let savedMap=new Map(storage.get('ootd-saved-items',[]).map(p=>[p.id,p]));const saved=new Set(savedMap.keys()),hidden=new Set(storage.get('ootd-hidden',[])),seen=new Set(storage.get('ootd-seen',[])),failed=new Set();let cursorMap=storage.get('ootd-cursors-domestic-clothed-v7',{}),toastTimer;
+let savedMap=new Map(storage.get('ootd-saved-items',[]).map(p=>[p.id,p]));const saved=new Set(savedMap.keys()),hidden=new Set(storage.get('ootd-hidden',[])),seen=new Set(storage.get('ootd-seen',[])),failed=new Set();let cursorMap=storage.get('ootd-cursors-domestic-lifestyle-v8',{}),toastTimer;
 function toast(t){$('#toast').textContent=t;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),2500)}
-function key(){return channel+':'+category+':'+$('#source').value}function persist(){storage.set('ootd-cursors-domestic-clothed-v7',cursorMap);storage.set('ootd-seen',[...seen].slice(-6000))}
+function key(){return channel+':'+category+':'+$('#source').value}function persist(){storage.set('ootd-cursors-domestic-lifestyle-v8',cursorMap);storage.set('ootd-seen',[...seen].slice(-6000))}
 const observer=new IntersectionObserver(es=>{for(const e of es)if(e.isIntersecting){seen.add(e.target.dataset.id);observer.unobserve(e.target)}persist()},{threshold:.4});
 function initColumns(){const n=innerWidth<=600?2:innerWidth<=900?3:innerWidth<=1200?4:innerWidth>=1800?6:5;$('#grid').replaceChildren();columns=Array.from({length:n},()=>{let c=document.createElement('div');c.className='masonry-column';$('#grid').append(c);return c});heights=Array(n).fill(0);$('#grid').style.setProperty('--columns',n)}
 function put(card,p){let i=heights.indexOf(Math.min(...heights));columns[i].append(card);heights[i]+=(p.height||960)/(p.width||720)*(innerWidth*.92/columns.length)+65}
