@@ -1,4 +1,4 @@
-import {initPersonal} from './personal.js?v=3';
+import {initPersonal} from './personal.js?v=4';
 import {CATEGORIES,NOTE,normalizeItems,filterItems,heatText} from './feed-utils.js?v=11';
 const $=s=>document.querySelector(s);const storage={get(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 let channel='photo',category='全部',items=[],queue=[],shown=0,savedOnly=false,busy=false,viewIndex=-1,epoch=0,emptyPages=0,hasMore=true,refreshPending=false,columns=[],heights=[],requestController;

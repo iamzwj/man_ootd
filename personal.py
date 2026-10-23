@@ -1,5 +1,6 @@
 """Private appearance libraries and durable GRsai photography jobs."""
 from contextlib import contextmanager
+from datetime import datetime,timedelta,timezone
 import base64, concurrent.futures, hashlib, io, json, os, secrets, sqlite3, threading, time
 from pathlib import Path
 from http.cookies import SimpleCookie
@@ -28,6 +29,8 @@ def db():
  c.executescript('''CREATE TABLE IF NOT EXISTS assets(id TEXT PRIMARY KEY,owner TEXT,path TEXT,created REAL);
  CREATE TABLE IF NOT EXISTS profiles(owner TEXT PRIMARY KEY,data TEXT);
  CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,owner TEXT,request_key TEXT,data TEXT,created REAL,UNIQUE(owner,request_key));
+ CREATE TABLE IF NOT EXISTS image_credits(id TEXT PRIMARY KEY,owner TEXT,day TEXT,job TEXT,slot TEXT,state TEXT);
+ CREATE INDEX IF NOT EXISTS credits_owner_day ON image_credits(owner,day);
  CREATE TABLE IF NOT EXISTS auth_accounts(id TEXT PRIMARY KEY,email TEXT UNIQUE,created REAL);
  CREATE TABLE IF NOT EXISTS auth_sessions(hash TEXT PRIMARY KEY,owner TEXT,email TEXT,expires REAL);
  CREATE TABLE IF NOT EXISTS auth_codes(email TEXT PRIMARY KEY,digest TEXT,expires REAL,attempts INTEGER,sent REAL);
@@ -52,9 +55,44 @@ def load_job(jid):
  with db() as c:r=c.execute('SELECT data FROM jobs WHERE id=?',(jid,)).fetchone()
  return json.loads(r[0]) if r else None
 
+SHANGHAI=timezone(timedelta(hours=8))
+DAILY_CREDITS=10
+
+def credit_day():return datetime.now(SHANGHAI).date().isoformat()
+
+def credit_balance(owner,c=None):
+ if c is None:
+  with db() as connection:return credit_balance(owner,connection)
+ day=credit_day();rows=c.execute("SELECT state,COUNT(*) FROM image_credits WHERE owner=? AND day=? GROUP BY state",(owner,day)).fetchall();counts={r[0]:r[1] for r in rows}
+ used=counts.get('charged',0);reserved=counts.get('reserved',0)
+ reset=datetime.fromisoformat(day).replace(tzinfo=SHANGHAI)+timedelta(days=1)
+ return {'remaining':max(0,DAILY_CREDITS-used-reserved),'limit':DAILY_CREDITS,'used':used,'reserved':reserved,'day':day,'resetAt':reset.isoformat()}
+
+def reserve_credits(c,j,slots):
+ needed=[]
+ for slot in slots:
+  if slot.get('asset'):continue
+  old=c.execute('SELECT state FROM image_credits WHERE id=?',(slot.get('creditId',''),)).fetchone()
+  if old and old[0] in {'reserved','charged'}:continue
+  needed.append(slot)
+ balance=credit_balance(j['owner'],c)
+ if len(needed)>balance['remaining']:raise UserError('积分不足：本次需要 %d 积分，今日剩余 %d 积分；北京时间 0 点恢复至 10 积分'%(len(needed),balance['remaining']))
+ for slot in needed:
+  cid=secrets.token_hex(16);slot['creditId']=cid
+  c.execute('INSERT INTO image_credits VALUES(?,?,?,?,?,?)',(cid,j['owner'],credit_day(),j['id'],slot['key'],'reserved'))
+
 def save_job(j):
  j['updated']=time.time()
- with db() as c:c.execute('UPDATE jobs SET data=? WHERE id=?',(json.dumps(j,ensure_ascii=False),j['id']))
+ with db() as c:
+  c.execute('BEGIN IMMEDIATE')
+  c.execute('UPDATE jobs SET data=? WHERE id=?',(json.dumps(j,ensure_ascii=False),j['id']))
+  for slot in j['slots']:
+   if not slot.get('creditId'):continue
+   if slot.get('asset'):state='charged'
+   elif slot.get('providerFailed') or (slot.get('providerCompleted') and j['status'] in TERMINAL) or (not slot.get('providerId') and slot.get('status') not in {'submitting','uncertain'} and (slot.get('status')=='failed' or j['status'] in TERMINAL)):state='refunded'
+   else:continue
+   c.execute("UPDATE image_credits SET state=? WHERE id=? AND state='reserved'",(state,slot['creditId']))
+
 
 def clean_image(data):
  if len(data)>12_000_000:raise UserError('单张照片不能超过 12 MB')
@@ -177,6 +215,7 @@ def execute(jid):
     try:
      r=api('/v1/api/result?id='+quote(s['providerId']));d=r.get('data') or r.get('result') or r;state=d.get('status',r.get('status',''))
      if state in {'succeeded','completed','success'}:
+      s['providerCompleted']=True
       url=generated_url(r)
       if not url:raise UserError('生成任务完成但没有图片，请重试')
       s['asset']=store_asset(j['owner'],remote_image(url));s['status']='succeeded';s.pop('error',None)
@@ -224,12 +263,13 @@ def create_job(owner,q,catalog):
   if not p['photos']:raise UserError('先上传自己的照片，建立形象库')
   history=jobs(owner)
   if sum(j['status'] not in TERMINAL for j in history)>=2:raise UserError('已有两个任务进行中，请完成后再生成')
-  if sum(j['created']>time.time()-86400 for j in history)>=int(os.getenv('OOTD_DAILY_JOBS','15')):raise UserError('今天的生成次数已用完，请明天再试')
   with db() as c:daily=c.execute('SELECT COUNT(*) FROM jobs WHERE created>?',(time.time()-86400,)).fetchone()[0]
   if daily>=int(os.getenv('OOTD_GLOBAL_DAILY_JOBS','100')):raise UserError('今日生图服务额度已用完，请稍后再试')
   if not os.getenv('GRSAI_API_KEY'):raise UserError('生图服务尚未配置')
   kind=q.get('kind')
   if kind not in {'profile','same','random'}:raise UserError('任务类型无效')
+  required=4 if kind=='profile' else 2
+  if credit_balance(owner)['remaining']<required:raise UserError('积分不足：本次需要 %d 积分，今日剩余 %d 积分'%(required,credit_balance(owner)['remaining']))
   ref=None
   if kind!='profile':
    if not p.get('summary') or len(p.get('views',{}))<4:raise UserError('请先完成形象库整理，再生成个人照片')
@@ -247,7 +287,9 @@ def create_job(owner,q,catalog):
    j['referenceAsset']=store_asset(owner,remote_image(ref['image']));j['reference']={'id':ref['id'],'title':ref['title'],'asset':j['referenceAsset']}
    if ref.get('width',0)>ref.get('height',1):j['size']='1152x864'
    j['slots']=[{'key':str(i),'label':'照片 '+str(i),'status':'queued'} for i in (1,2)]
-  with db() as c:c.execute('INSERT INTO jobs VALUES(?,?,?,?,?)',(jid,owner,key,json.dumps(j,ensure_ascii=False),j['created']))
+  with db() as c:
+   c.execute('BEGIN IMMEDIATE');reserve_credits(c,j,j['slots'])
+   c.execute('INSERT INTO jobs VALUES(?,?,?,?,?)',(jid,owner,key,json.dumps(j,ensure_ascii=False),j['created']))
   launch(jid);return j
 
 def public_job(j):return {k:v for k,v in j.items() if k not in {'owner','photos','prompt','revision','referenceAsset','requestKey'}}
@@ -272,7 +314,7 @@ def handle(h,catalog):
   h.end_headers();h.wfile.write(body)
  try:
   if h.command=='GET':
-   if path=='/api/personal':send(200,{'authenticated':bool(login),'user':{'email':login['email']} if login else None,'loginConfigured':email_auth.configured(),'profile':read_profile(owner) if login else {'photos':[],'views':{},'summary':None},'jobs':[public_job(j) for j in jobs(owner)] if login else [],'configured':bool(os.getenv('GRSAI_API_KEY')),'imageModel':IMAGE_MODEL,'reasonModel':REASON_MODEL})
+   if path=='/api/personal':send(200,{'credits':credit_balance(owner) if login else None,'authenticated':bool(login),'user':{'email':login['email']} if login else None,'loginConfigured':email_auth.configured(),'profile':read_profile(owner) if login else {'photos':[],'views':{},'summary':None},'jobs':[public_job(j) for j in jobs(owner)] if login else [],'configured':bool(os.getenv('GRSAI_API_KEY')),'imageModel':IMAGE_MODEL,'reasonModel':REASON_MODEL})
    elif path.startswith('/api/personal/assets/'):
     if not login:raise email_auth.AuthError('请先登录',401)
     send(200,raw=asset(owner,path))
@@ -312,11 +354,16 @@ def handle(h,catalog):
     j['retries']=j.get('retries',0)+1
     if j['revision']!=read_profile(owner).get('revision'):raise UserError('形象照片已更新，请新建任务')
     if any(s.get('status')=='uncertain' for s in j['slots']):raise UserError('提交状态未知，不能安全地自动重试，请稍后查看历史')
-    for s in j['slots']:
-     if not s.get('asset'):
-      if s.pop('providerFailed',False):s.pop('providerId',None)
-      s['status']='running' if s.get('providerId') else 'queued';s.pop('error',None)
-    j['status']='queued';j.pop('error',None);save_job(j);launch(j['id']);send(202,{'job':public_job(j)})
+    with db() as c:
+     c.execute('BEGIN IMMEDIATE');reserve_credits(c,j,j['slots'])
+     # Save reservations and retry state atomically, including cross-day retries.
+     for s in j['slots']:
+      if not s.get('asset'):
+       if s.pop('providerFailed',False):s.pop('providerId',None)
+       s['status']='running' if s.get('providerId') else 'queued';s.pop('error',None)
+     j['status']='queued';j.pop('error',None);j['updated']=time.time()
+     c.execute('UPDATE jobs SET data=? WHERE id=?',(json.dumps(j,ensure_ascii=False),j['id']))
+    launch(j['id']);send(202,{'job':public_job(j)})
   elif path=='/api/personal/delete':
    if any(j['status'] not in TERMINAL for j in jobs(owner)):raise UserError('请等待正在进行的任务结束后再删除')
    with db() as c:
