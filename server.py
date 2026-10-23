@@ -5,6 +5,7 @@ from pathlib import Path
 import mimetypes
 import socket, ipaddress
 import visual_filter
+import personal
 from html.parser import HTMLParser
 from collections import OrderedDict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -554,6 +555,7 @@ class Handler(BaseHTTPRequestHandler):
  def send(self,status,data):
   body=json.dumps(data,ensure_ascii=False,separators=(',',':')).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_GET(self):
+  if personal.handle(self,lambda:catalog_rows("全部")):return
   u=urlparse(self.path)
   if u.path=='/api/sources':
    registry=Path(__file__).resolve().parent/'photographer-sources.json'
@@ -563,10 +565,10 @@ class Handler(BaseHTTPRequestHandler):
   if u.path=='/api/health':
    try:source_count=len(json.loads((Path(__file__).resolve().parent/'photographer-sources.json').read_text()))
    except (OSError,ValueError):source_count=0
-   return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'visualScreening':visual_filter.ready(),'version':'domestic-continuous-v7','reviewPolicy':REVIEW_POLICY,'providers':PROVIDERS,'photographerCount':source_count,'catalogCount':len(catalog_rows('全部'))})
+   return self.send(200,{'ok':True,'mode':'live','imageStorage':False,'privatePersonalStorage':True,'visualScreening':visual_filter.ready(),'version':'domestic-continuous-v7','reviewPolicy':REVIEW_POLICY,'providers':PROVIDERS,'photographerCount':source_count,'catalogCount':len(catalog_rows('全部'))})
   if u.path!='/api/discover':
    name='index.html' if u.path=='/' else u.path.lstrip('/')
-   if name not in {'index.html','app.js','style.css','feed-utils.js','sw.js'}:return self.send(404,{'error':'not_found'})
+   if name not in {'index.html','app.js','style.css','feed-utils.js','sw.js','personal.js'}:return self.send(404,{'error':'not_found'})
    body=(Path(__file__).resolve().parent/name).read_bytes();self.send_response(200);self.send_header('Content-Type',mimetypes.guess_type(name)[0] or 'application/octet-stream');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body);return
   q=parse_qs(u.query);channel=q.get('channel',['photo'])[0];category=q.get('category',['全部'])[0]
   try:cursor=int(q.get('cursor',['0'])[0])
@@ -582,6 +584,7 @@ class Handler(BaseHTTPRequestHandler):
   except (BrokenPipeError,ConnectionResetError):pass
   finally:GATE.release()
  def do_POST(self):
+  if personal.handle(self,lambda:catalog_rows("全部")):return
   if urlparse(self.path).path!='/api/discover':return self.send(404,{'error':'not_found'})
   try:
    size=int(self.headers.get('Content-Length','0'))
@@ -600,4 +603,6 @@ class Handler(BaseHTTPRequestHandler):
   finally:GATE.release()
  def log_message(self,fmt,*args):print(fmt%args,flush=True)
 
-if __name__=='__main__':ThreadingHTTPServer(('127.0.0.1',int(os.getenv('PORT','8794'))),Handler).serve_forever()
+if __name__=='__main__':
+ personal.resume()
+ ThreadingHTTPServer(('127.0.0.1',int(os.getenv('PORT','8794'))),Handler).serve_forever()

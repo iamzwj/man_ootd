@@ -1,0 +1,309 @@
+"""Private appearance libraries and durable GRsai photography jobs."""
+from contextlib import contextmanager
+import base64, concurrent.futures, hashlib, io, json, os, secrets, sqlite3, threading, time
+from pathlib import Path
+from http.cookies import SimpleCookie
+from urllib.request import Request, urlopen, build_opener, HTTPRedirectHandler
+from urllib.error import HTTPError
+from urllib.parse import urlparse, quote
+from PIL import Image, ImageOps
+
+IMAGE_MODEL='gpt-image-2.5'
+REASON_MODEL='gemini-3.1-pro'
+ROOT=Path(os.getenv('OOTD_PERSONAL_PATH',str(Path.home()/'.local/share/ootd-personal')))
+WORKERS=concurrent.futures.ThreadPoolExecutor(max_workers=3)
+ACTIVE=set(); GUARD=threading.RLock()
+TERMINAL={'succeeded','failed','partial','uncertain'}
+Image.MAX_IMAGE_PIXELS=35_000_000
+
+class UserError(Exception):pass
+class UnknownSubmission(UserError):pass
+
+@contextmanager
+def db():
+ ROOT.mkdir(parents=True,exist_ok=True,mode=0o700)
+ c=sqlite3.connect(ROOT/'personal.sqlite',timeout=20);c.row_factory=sqlite3.Row
+ c.execute('PRAGMA journal_mode=WAL')
+ c.executescript('''CREATE TABLE IF NOT EXISTS assets(id TEXT PRIMARY KEY,owner TEXT,path TEXT,created REAL);
+ CREATE TABLE IF NOT EXISTS profiles(owner TEXT PRIMARY KEY,data TEXT);
+ CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,owner TEXT,request_key TEXT,data TEXT,created REAL,UNIQUE(owner,request_key));''')
+ try:
+  with c:yield c
+ finally:c.close()
+
+def read_profile(owner):
+ with db() as c:r=c.execute('SELECT data FROM profiles WHERE owner=?',(owner,)).fetchone()
+ return json.loads(r[0]) if r else {'photos':[],'summary':None,'views':{}}
+
+def save_profile(owner,p):
+ with db() as c:c.execute('INSERT OR REPLACE INTO profiles VALUES(?,?)',(owner,json.dumps(p,ensure_ascii=False)))
+
+def jobs(owner):
+ with db() as c:rows=c.execute('SELECT data FROM jobs WHERE owner=? ORDER BY created DESC LIMIT 30',(owner,)).fetchall()
+ return [json.loads(r[0]) for r in rows]
+
+def load_job(jid):
+ with db() as c:r=c.execute('SELECT data FROM jobs WHERE id=?',(jid,)).fetchone()
+ return json.loads(r[0]) if r else None
+
+def save_job(j):
+ j['updated']=time.time()
+ with db() as c:c.execute('UPDATE jobs SET data=? WHERE id=?',(json.dumps(j,ensure_ascii=False),j['id']))
+
+def clean_image(data):
+ if len(data)>12_000_000:raise UserError('单张照片不能超过 12 MB')
+ try:
+  with Image.open(io.BytesIO(data)) as original:
+   if original.format not in {'JPEG','PNG','WEBP'}:raise ValueError()
+   image=ImageOps.exif_transpose(original).convert('RGB');image.thumbnail((1800,1800))
+   if min(image.size)<160:raise ValueError()
+   out=io.BytesIO();image.save(out,'JPEG',quality=92);return out.getvalue()
+ except Exception:raise UserError('请选择清晰的 JPG、PNG 或 WebP 照片，短边至少 160 像素')
+
+def store_asset(owner,data):
+ data=clean_image(data);aid=secrets.token_hex(16);folder=ROOT/'images';folder.mkdir(mode=0o700,exist_ok=True)
+ path=folder/(aid+'.jpg');path.write_bytes(data);path.chmod(0o600)
+ with db() as c:c.execute('INSERT INTO assets VALUES(?,?,?,?)',(aid,owner,str(path),time.time()))
+ return '/api/personal/assets/'+aid
+
+def asset(owner,url):
+ aid=url.rsplit('/',1)[-1]
+ with db() as c:r=c.execute('SELECT path FROM assets WHERE id=? AND owner=?',(aid,owner)).fetchone()
+ if not r:raise UserError('照片不存在或不属于当前形象库')
+ return Path(r[0]).read_bytes()
+
+def data_uri(owner,url):return 'data:image/jpeg;base64,'+base64.b64encode(asset(owner,url)).decode()
+
+def api(path,body=None):
+ key=os.getenv('GRSAI_API_KEY','').strip();base=os.getenv('GRSAI_BASE_URL','https://grsaiapi.com').rstrip('/')
+ if not key:raise UserError('生图服务尚未配置，请稍后再试')
+ req=Request(base+path,data=json.dumps(body).encode() if body is not None else None,headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'})
+ try:
+  with urlopen(req,timeout=125 if '/chat/' in path else 45) as r:result=json.loads(r.read(8_000_000))
+ except HTTPError as e:
+  try:
+   d=json.loads(e.read(4000));error=d.get('error',{});msg=error.get('message','') if isinstance(error,dict) else str(error)
+  except Exception:msg=''
+  if '修复' in msg or 'maintenance' in msg.lower():raise UserError('GRsai：该模型正在修复，请稍后重试')
+  raise UserError('GRsai 请求失败（%s）%s'%(e.code,'：'+msg[:160].replace(key,'[hidden]') if msg else ''))
+ if not isinstance(result,dict):raise UserError('GRsai 返回格式无效')
+ if result.get('error'):raise UserError('GRsai 未完成请求，请稍后重试')
+ return result
+
+def reason(prompt,images):
+ content=[{'type':'text','text':prompt}]+[{'type':'image_url','image_url':{'url':u}} for u in images]
+ r=api('/v1/chat/completions',{'model':REASON_MODEL,'messages':[{'role':'user','content':content}],'max_tokens':3500})
+ try:
+  text=r['choices'][0]['message']['content'].strip()
+  if text.startswith('```'):text=text.split('\n',1)[1].rsplit('```',1)[0]
+  value=json.loads(text)
+  if not isinstance(value,dict):raise ValueError()
+  return value
+ except Exception:raise UserError('形象分析未返回有效结果，请重试')
+
+def remote_image(url):
+ # Validate every redirect; never allow a client supplied host or a private endpoint.
+ import server
+ class SafeRedirect(HTTPRedirectHandler):
+  def redirect_request(self,req,fp,code,msg,headers,newurl):
+   if not server.public_url(newurl,resolve=True):raise UserError('图片地址不可用')
+   return super().redirect_request(req,fp,code,msg,headers,newurl)
+ if not server.public_url(url,resolve=True):raise UserError('图片地址不可用')
+ try:
+  with build_opener(SafeRedirect()).open(Request(url,headers={'User-Agent':'Mozilla/5.0'}),timeout=40) as r:data=r.read(12_000_001)
+  return clean_image(data)
+ except UserError:raise
+ except Exception:raise UserError('参考图或生成结果暂时无法下载，请重试')
+
+def submit_image(prompt,images,size):
+ r=api('/v1/api/generate',{'model':IMAGE_MODEL,'prompt':prompt,'images':images,'aspectRatio':size,'quality':'high','replyType':'async'})
+ nested=r.get('data') or r.get('result') or r
+ pid=nested.get('id') or r.get('id')
+ if not pid:raise UnknownSubmission('GRsai 未返回任务编号；为避免重复计费，未自动重复提交')
+ return str(pid)
+
+def generated_url(r):
+ for d in [r,r.get('data'),r.get('result')]:
+  if not isinstance(d,dict):continue
+  for p in d.get('results',[]):
+   if isinstance(p,dict) and p.get('url'):return p['url']
+  if d.get('url'):return d['url']
+ return None
+
+def execute(jid):
+ j=load_job(jid)
+ try:
+  p=read_profile(j['owner']);images=[data_uri(j['owner'],u) for u in j['photos'][:6]]
+  if not j.get('prompt'):
+   j['stage']='分析形象' if j['kind']=='profile' else '分析参考照片';save_job(j)
+   if j['kind']=='profile':
+    summary=reason('分析这些同一位成年人的照片，只写可见外观，不猜姓名、国籍、健康。返回 JSON：description（脸型、五官、发型、体态的具体中文描述），accessories（反复出现的配饰字符串数组），missingViews（未见的正面、侧面、背面视角数组）。无法看见的细节写不确定。',images)
+    if not isinstance(summary.get('description'),str) or not isinstance(summary.get('accessories'),list):raise UserError('形象分析字段不完整，请重试')
+    summary['description']=summary['description'][:3000]
+    summary['missingViews']=[x[:40] for x in summary.get('missingViews',[]) if isinstance(x,str)][:4] if isinstance(summary.get('missingViews',[]),list) else []
+    summary['accessories']=[x[:80] for x in summary['accessories'][:12] if isinstance(x,str)]
+    j['summary']=summary
+    j['prompt']='生成这同一个成年人的独立形象参考照片，严格保持本人脸型五官、发型、体态，不美化换脸。完整穿着简洁日常衣服，无裸露。中性背景和自然光。只输出单张照片，不要拼图、文字。外观：'+summary['description']+'。常见配饰：'+json.dumps(summary['accessories'],ensure_ascii=False)
+   else:
+    ref='data:image/jpeg;base64,'+base64.b64encode(asset(j['owner'],j['referenceAsset'])).decode()
+    scene=reason('只分析最后一张场景参考的摄影风格，不描述或复制其中人物的脸。返回 JSON：style（详细中文描述场景、自然姿态、构图、光线、色彩、镜头质感）。前面的图片是用户本人，只用于保持身份。',images+[ref])
+    if not isinstance(scene.get('style'),str):raise UserError('场景分析字段不完整，请重试')
+    j['prompt']='为前几张身份参考中的同一个成年人拍摄一张自然生活感摄影。严格保持用户本人的脸型五官、发型和体态。最后一张仅作场景、光影、构图和姿态参考，绝不能复制最后一张里的人脸。完整日常衣着、无裸露、无内衣泳装。禁止文字、水印、拼图。摄影要求：'+scene['style']+'。用户常见配饰：'+json.dumps(p.get('summary',{}).get('accessories',[]),ensure_ascii=False)
+   save_job(j)
+  if j['kind']!='profile':images.append(data_uri(j['owner'],j['referenceAsset']))
+  j['stage']='生成形象参考' if j['kind']=='profile' else '生成个人照片';j['status']='running';save_job(j)
+  # Submit independently and persist every upstream id before doing any further work.
+  for i,s in enumerate(j['slots']):
+   if s.get('asset') or s.get('providerId') or s.get('status') in {'failed','uncertain'}:continue
+   s['status']='submitting';save_job(j)
+   try:
+    direction=('。视角：'+s['label']+'。缺失角度只能作为 AI 补全参考，不声称是真实记录。') if j['kind']=='profile' else ('。这是独立的第%d张作品，保持同一场景风格，使用略有区别的自然动作和取景。'%(i+1))
+    s['providerId']=submit_image(j['prompt']+direction,images,j['size']);s['status']='running';save_job(j)
+   except UnknownSubmission as e:s['status']='uncertain';s['error']=str(e);save_job(j)
+   except UserError as e:s['status']='failed';s['error']=str(e);save_job(j)
+   except Exception:s['status']='uncertain';s['error']='提交连接中断，结果状态未知，未自动重复提交';save_job(j)
+  deadline=time.time()+900
+  while time.time()<deadline:
+   pending=[s for s in j['slots'] if s.get('providerId') and not s.get('asset') and s.get('status') not in {'failed','uncertain'}]
+   if not pending:break
+   for s in pending:
+    try:
+     r=api('/v1/api/result?id='+quote(s['providerId']));d=r.get('data') or r.get('result') or r;state=d.get('status',r.get('status',''))
+     if state in {'succeeded','completed','success'}:
+      url=generated_url(r)
+      if not url:raise UserError('生成任务完成但没有图片，请重试')
+      s['asset']=store_asset(j['owner'],remote_image(url));s['status']='succeeded';s.pop('error',None)
+     elif state in {'failed','error','cancelled','canceled'}:s['status']='failed';s['error']='GRsai 生成失败，请重试'
+     else:s['progress']=d.get('progress',0)
+     save_job(j)
+    except UserError as e:s['lastError']=str(e);save_job(j)
+    except Exception:s['lastError']='查询进度连接中断，正在重试';save_job(j)
+   if any(s.get('status')=='running' for s in j['slots']):time.sleep(5)
+  for s in j['slots']:
+   if s.get('status')=='running':s['status']='failed';s['error']=s.get('lastError','生成超时，可重试查询已有任务')
+  done=sum(bool(s.get('asset')) for s in j['slots']);j['status']='succeeded' if done==len(j['slots']) else 'partial' if done else 'uncertain' if any(s.get('status')=='uncertain' for s in j['slots']) else 'failed'
+  if j['kind']=='profile' and j.get('summary'):
+   p=read_profile(j['owner'])
+   if p.get('revision')==j['revision']:
+    p['summary']=j['summary'];p['views']={s['key']:s['asset'] for s in j['slots'] if s.get('asset')};save_profile(j['owner'],p)
+ except UserError as e:j['status']='failed';j['error']=str(e)
+ except Exception:j['status']='failed';j['error']='任务暂时中断，已保存进度，可稍后重试'
+ finally:
+  save_job(j)
+  with GUARD:ACTIVE.discard(jid)
+
+def launch(jid):
+ with GUARD:
+  if jid in ACTIVE:return
+  ACTIVE.add(jid);WORKERS.submit(execute,jid)
+
+def resume():
+ with db() as c:rows=c.execute('SELECT data FROM jobs').fetchall()
+ for row in rows:
+  j=json.loads(row[0])
+  if j['status'] in TERMINAL:continue
+  for s in j['slots']:
+   if s.get('status')=='submitting' and not s.get('providerId'):s['status']='uncertain';s['error']='服务重启前提交状态未知，未重复提交'
+  save_job(j);launch(j['id'])
+
+
+def create_job(owner,q,catalog):
+ key=q.get('requestKey','')
+ if not isinstance(key,str) or not 12<=len(key)<=100:raise UserError('请求编号无效，请重新点击')
+ with GUARD:
+  with db() as c:old=c.execute('SELECT data FROM jobs WHERE owner=? AND request_key=?',(owner,key)).fetchone()
+  if old:return json.loads(old[0])
+  p=read_profile(owner)
+  if not p['photos']:raise UserError('先上传自己的照片，建立形象库')
+  history=jobs(owner)
+  if sum(j['status'] not in TERMINAL for j in history)>=2:raise UserError('已有两个任务进行中，请完成后再生成')
+  if sum(j['created']>time.time()-86400 for j in history)>=int(os.getenv('OOTD_DAILY_JOBS','15')):raise UserError('今天的生成次数已用完，请明天再试')
+  with db() as c:daily=c.execute('SELECT COUNT(*) FROM jobs WHERE created>?',(time.time()-86400,)).fetchone()[0]
+  if daily>=int(os.getenv('OOTD_GLOBAL_DAILY_JOBS','100')):raise UserError('今日生图服务额度已用完，请稍后再试')
+  if not os.getenv('GRSAI_API_KEY'):raise UserError('生图服务尚未配置')
+  kind=q.get('kind')
+  if kind not in {'profile','same','random'}:raise UserError('任务类型无效')
+  ref=None
+  if kind!='profile':
+   if not p.get('summary') or len(p.get('views',{}))<4:raise UserError('请先完成形象库整理，再生成个人照片')
+   candidates=q.get('referenceIds',[]) if kind=='random' else [q.get('referenceId')]
+   if not isinstance(candidates,list) or len(candidates)>500:raise UserError('参考图片无效')
+   candidate_ids={x for x in candidates if isinstance(x,str)};available=[r for r in catalog if r['id'] in candidate_ids]
+   if not available:raise UserError('当前照片参考已过期，请刷新后重试')
+   ref=secrets.choice(available)
+  jid=secrets.token_hex(16);j={'id':jid,'owner':owner,'requestKey':key,'kind':kind,'revision':p.get('revision'),'photos':p['photos'][:], 'status':'queued','stage':'排队中','created':time.time(),'slots':[],'size':'864x1152'}
+  if kind=='profile':j['slots']=[{'key':key,'label':label,'status':'queued'} for key,label in [('front','正面全身'),('side','侧面全身'),('back','背面全身'),('face','面部特写')]]
+  else:
+   j['photos']=(p['photos'][:4]+[p['views']['face'],p['views']['front']])[:6]
+   j['referenceAsset']=store_asset(owner,remote_image(ref['image']));j['reference']={'id':ref['id'],'title':ref['title'],'asset':j['referenceAsset']}
+   if ref.get('width',0)>ref.get('height',1):j['size']='1152x864'
+   j['slots']=[{'key':str(i),'label':'照片 '+str(i),'status':'queued'} for i in (1,2)]
+  with db() as c:c.execute('INSERT INTO jobs VALUES(?,?,?,?,?)',(jid,owner,key,json.dumps(j,ensure_ascii=False),j['created']))
+  launch(jid);return j
+
+def public_job(j):return {k:v for k,v in j.items() if k not in {'owner','photos','prompt','revision','referenceAsset','requestKey'}}
+
+def handle(h,catalog):
+ path=urlparse(h.path).path
+ if not path.startswith('/api/personal'):return False
+ cookie=SimpleCookie()
+ try:cookie.load(h.headers.get('Cookie',''))
+ except Exception:pass
+ token=cookie['ootd_personal'].value if 'ootd_personal' in cookie else ''
+ new=not (len(token)==64 and all(c in '0123456789abcdef' for c in token))
+ if new:token=secrets.token_hex(32)
+ owner=hashlib.sha256(token.encode()).hexdigest()
+ def send(code,data=None,raw=None):
+  body=raw if raw is not None else json.dumps(data,ensure_ascii=False).encode();h.send_response(code)
+  h.send_header('Content-Type','image/jpeg' if raw is not None else 'application/json; charset=utf-8');h.send_header('Cache-Control','private, no-store');h.send_header('X-Content-Type-Options','nosniff');h.send_header('Content-Length',str(len(body)))
+  if new:h.send_header('Set-Cookie','ootd_personal='+token+'; HttpOnly; SameSite=Lax; Path=/api/personal; Max-Age=31536000'+('' if h.headers.get('Host','').startswith(('localhost','127.0.0.1')) else '; Secure'))
+  h.end_headers();h.wfile.write(body)
+ try:
+  if h.command=='GET':
+   if path=='/api/personal':send(200,{'profile':read_profile(owner),'jobs':[public_job(j) for j in jobs(owner)],'configured':bool(os.getenv('GRSAI_API_KEY')),'imageModel':IMAGE_MODEL,'reasonModel':REASON_MODEL})
+   elif path.startswith('/api/personal/assets/'):send(200,raw=asset(owner,path))
+   else:send(404,{'error':'未找到'})
+   return True
+  origin=h.headers.get('Origin')
+  if origin and urlparse(origin).netloc!=h.headers.get('Host'):send(403,{'error':'请求来源无效'});return True
+  if h.headers.get('Content-Type','').split(';')[0]!='application/json':raise UserError('请求格式无效')
+  length=int(h.headers.get('Content-Length','0'))
+  if not 0<length<=24_000_000:raise UserError('上传内容过大，最多上传 12 张照片')
+  q=json.loads(h.rfile.read(length))
+  if not isinstance(q,dict):raise UserError('请求格式无效')
+  if path=='/api/personal/upload':
+   uploads=q.get('photos',[]);p=read_profile(owner)
+   if not isinstance(uploads,list) or not uploads or len(uploads)+len(p['photos'])>12:raise UserError('形象库最多保留 12 张原始照片')
+   decoded=[]
+   for u in uploads:
+    if not isinstance(u,str) or not u.startswith(('data:image/jpeg;base64,','data:image/png;base64,','data:image/webp;base64,')):raise UserError('请选择 JPG、PNG 或 WebP 照片')
+    try:decoded.append(clean_image(base64.b64decode(u.split(',',1)[1],validate=True)))
+    except ValueError:raise UserError('图片编码无效')
+   p['photos'] += [store_asset(owner,d) for d in decoded];p['views']={};p['summary']=None;p['revision']=secrets.token_hex(8);save_profile(owner,p);send(200,{'profile':p})
+  elif path=='/api/personal/generate':send(202,{'job':public_job(create_job(owner,q,catalog()))})
+  elif path=='/api/personal/retry':
+   with GUARD:
+    j=load_job(q.get('id',''))
+    if not j or j['owner']!=owner:raise UserError('任务不存在')
+    if j['status'] not in TERMINAL:raise UserError('任务仍在进行中')
+    if j.get('retries',0)>=3:raise UserError('已重试三次，请稍后新建任务')
+    if any(x['status'] not in TERMINAL for x in jobs(owner)):raise UserError('请等待当前任务完成后重试')
+    j['retries']=j.get('retries',0)+1
+    if j['revision']!=read_profile(owner).get('revision'):raise UserError('形象照片已更新，请新建任务')
+    if any(s.get('status')=='uncertain' for s in j['slots']):raise UserError('提交状态未知，不能安全地自动重试，请稍后查看历史')
+    for s in j['slots']:
+     if not s.get('asset'):s['status']='running' if s.get('providerId') else 'queued';s.pop('error',None)
+    j['status']='queued';j.pop('error',None);save_job(j);launch(j['id']);send(202,{'job':public_job(j)})
+  elif path=='/api/personal/delete':
+   if any(j['status'] not in TERMINAL for j in jobs(owner)):raise UserError('请等待正在进行的任务结束后再删除')
+   with db() as c:
+    paths=c.execute('SELECT path FROM assets WHERE owner=?',(owner,)).fetchall()
+    c.execute('DELETE FROM assets WHERE owner=?',(owner,));c.execute('DELETE FROM profiles WHERE owner=?',(owner,));c.execute('DELETE FROM jobs WHERE owner=?',(owner,))
+   for r in paths:Path(r[0]).unlink(missing_ok=True)
+   send(200,{'ok':True})
+  else:send(404,{'error':'未找到'})
+ except UserError as e:send(400,{'error':str(e)})
+ except (ValueError,TypeError):send(400,{'error':'请求格式无效'})
+ except (BrokenPipeError,ConnectionResetError):pass
+ except Exception:send(500,{'error':'服务暂时不可用，请稍后重试'})
+ return True

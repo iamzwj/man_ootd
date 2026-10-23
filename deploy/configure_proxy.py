@@ -3,6 +3,7 @@ from pathlib import Path
 import re, time
 snippet=Path('/etc/nginx/snippets/ootd-api.conf')
 snippet.write_text('''location ^~ /api/ {
+    client_max_body_size 24m;
     proxy_pass http://127.0.0.1:8794;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
