@@ -20,6 +20,18 @@ class CreditsTests(unittest.TestCase):
   j['status']='uncertain' if uncertain else 'succeeded' if success==len(j['slots']) else 'partial' if success else 'failed';p.save_job(j)
  def test_daily_ten_and_account_isolation(self):
   self.assertEqual(p.credit_balance('one')['remaining'],10);self.make();self.assertEqual(p.credit_balance('one')['remaining'],8);self.assertEqual(p.credit_balance('other')['remaining'],10)
+ def test_private_email_override_has_999_without_changing_other_accounts(self):
+  with p.db() as c:
+   c.execute('INSERT INTO auth_accounts VALUES(?,?,?)',('one','vip@example.test',0))
+   c.execute('INSERT INTO account_credit_limits VALUES(?,?)',('vip@example.test',999))
+  self.assertEqual(p.credit_balance('one')['limit'],999);self.assertEqual(p.credit_balance('one')['remaining'],999)
+  j=self.make();self.settle(j,2)
+  self.assertEqual(p.credit_balance('one')['remaining'],997);self.assertEqual(p.credit_balance('other')['limit'],10)
+ def test_override_applies_after_first_registration(self):
+  with p.db() as c:c.execute('INSERT INTO account_credit_limits VALUES(?,?)',('future@example.test',999))
+  self.assertEqual(p.credit_balance('new-owner')['limit'],10)
+  with p.db() as c:c.execute('INSERT INTO auth_accounts VALUES(?,?,?)',('new-owner','future@example.test',0))
+  self.assertEqual(p.credit_balance('new-owner')['limit'],999)
  def test_profile_four_and_idempotent_submission(self):
   a=self.make(kind='profile');b=self.make(kind='profile');self.assertEqual(a['id'],b['id']);self.assertEqual(p.credit_balance('one')['remaining'],6)
  def test_success_charge_once_partial_refund_once(self):

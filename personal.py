@@ -31,6 +31,7 @@ def db():
  CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,owner TEXT,request_key TEXT,data TEXT,created REAL,UNIQUE(owner,request_key));
  CREATE TABLE IF NOT EXISTS image_credits(id TEXT PRIMARY KEY,owner TEXT,day TEXT,job TEXT,slot TEXT,state TEXT);
  CREATE INDEX IF NOT EXISTS credits_owner_day ON image_credits(owner,day);
+ CREATE TABLE IF NOT EXISTS account_credit_limits(email TEXT PRIMARY KEY,daily_limit INTEGER NOT NULL CHECK(daily_limit>0));
  CREATE TABLE IF NOT EXISTS auth_accounts(id TEXT PRIMARY KEY,email TEXT UNIQUE,created REAL);
  CREATE TABLE IF NOT EXISTS auth_sessions(hash TEXT PRIMARY KEY,owner TEXT,email TEXT,expires REAL);
  CREATE TABLE IF NOT EXISTS auth_codes(email TEXT PRIMARY KEY,digest TEXT,expires REAL,attempts INTEGER,sent REAL);
@@ -63,10 +64,12 @@ def credit_day():return datetime.now(SHANGHAI).date().isoformat()
 def credit_balance(owner,c=None):
  if c is None:
   with db() as connection:return credit_balance(owner,connection)
+ account=c.execute('SELECT limits.daily_limit FROM auth_accounts AS account JOIN account_credit_limits AS limits ON limits.email=account.email WHERE account.id=?',(owner,)).fetchone()
+ limit=account[0] if account else DAILY_CREDITS
  day=credit_day();rows=c.execute("SELECT state,COUNT(*) FROM image_credits WHERE owner=? AND day=? GROUP BY state",(owner,day)).fetchall();counts={r[0]:r[1] for r in rows}
  used=counts.get('charged',0);reserved=counts.get('reserved',0)
  reset=datetime.fromisoformat(day).replace(tzinfo=SHANGHAI)+timedelta(days=1)
- return {'remaining':max(0,DAILY_CREDITS-used-reserved),'limit':DAILY_CREDITS,'used':used,'reserved':reserved,'day':day,'resetAt':reset.isoformat()}
+ return {'remaining':max(0,limit-used-reserved),'limit':limit,'used':used,'reserved':reserved,'day':day,'resetAt':reset.isoformat()}
 
 def reserve_credits(c,j,slots):
  needed=[]
@@ -76,7 +79,7 @@ def reserve_credits(c,j,slots):
   if old and old[0] in {'reserved','charged'}:continue
   needed.append(slot)
  balance=credit_balance(j['owner'],c)
- if len(needed)>balance['remaining']:raise UserError('积分不足：本次需要 %d 积分，今日剩余 %d 积分；北京时间 0 点恢复至 10 积分'%(len(needed),balance['remaining']))
+ if len(needed)>balance['remaining']:raise UserError('积分不足：本次需要 %d 积分，今日剩余 %d 积分；北京时间 0 点恢复至 %d 积分'%(len(needed),balance['remaining'],balance['limit']))
  for slot in needed:
   cid=secrets.token_hex(16);slot['creditId']=cid
   c.execute('INSERT INTO image_credits VALUES(?,?,?,?,?,?)',(cid,j['owner'],credit_day(),j['id'],slot['key'],'reserved'))

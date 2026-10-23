@@ -9,7 +9,7 @@ function image(url,alt){const img=node('img');img.src=url;img.alt=alt;img.loadin
 function panes(){const logged=!!state.authenticated;$('#loginPane').hidden=logged;$('#personalTabs').hidden=!logged;$('#accountBar').hidden=!logged;$('#creditRule').hidden=!logged;$('#profilePane').hidden=!logged||activeTab!=='profile';$('#historyPane').hidden=!logged||activeTab!=='history';$('#profileTab').setAttribute('aria-selected',String(activeTab==='profile'));$('#historyTab').setAttribute('aria-selected',String(activeTab==='history'));$('#personalDialog').classList.toggle('login-only',!logged)}
 function open(tab='profile'){activeTab=tab;const d=$('#personalDialog');panes();if(!d.open)d.showModal()}
 function render(){
- panes();$('#accountEmail').textContent=state.user?.email||'';const credits=state.credits;$('#accountCredits').textContent=credits?'今日积分 '+credits.remaining+' / '+credits.limit:'';$('#creditRule').textContent='每日北京时间 0 点恢复至 10 积分，不累积。1 积分生成 1 张图：形象库 4 分，做同款或随机生成 2 分。失败图片自动退分，状态未确认的图片暂时冻结积分。';
+ panes();$('#accountEmail').textContent=state.user?.email||'';const credits=state.credits;$('#accountCredits').textContent=credits?'今日积分 '+credits.remaining+' / '+credits.limit:'';$('#accountCredits').title='每日北京时间 0 点恢复至 '+(credits?.limit??10)+' 积分';$('#creditRule').textContent='每日北京时间 0 点恢复至 '+(credits?.limit??10)+' 积分，不累积。1 积分生成 1 张图：形象库 4 分，做同款或随机生成 2 分。失败图片自动退分，状态未确认的图片暂时冻结积分。';
  const p=state.profile;$('#uploadCount').textContent=p.photos.length+'/12';$('#identityPhotos').replaceChildren(...p.photos.map((u,i)=>image(u,'原始照片 '+(i+1))));
  $('#profileSummary').textContent=p.summary?.description||'上传清晰的正面、侧面及全身照，整理出你的个人形象。';
  $('#accessories').textContent=p.summary?'常见配饰：'+(p.summary.accessories?.join('、')||'未识别到固定配饰'):'';
