@@ -22,7 +22,7 @@ class PersonalTests(unittest.TestCase):
    return p.create_job(self.owner,{'requestKey':'unique-key-'+kind,'kind':kind,**extra},[{'id':'ref','image':'https://example.com/photo.jpg','title':'参考','width':300,'height':400}])
  def ready(self):p.save_profile(self.owner,{'photos':[self.photo],'revision':'one','views':dict.fromkeys(['front','side','back','face'],self.photo),'summary':{'accessories':['眼镜']}})
  def test_idempotent_four_view_job(self):
-  a=self.make();b=self.make();self.assertEqual(a['id'],b['id']);self.assertEqual(len(a['slots']),4);self.assertEqual(len(p.jobs(self.owner)),1)
+  a=self.make();b=self.make();self.assertEqual(a['id'],b['id']);self.assertEqual(len(a['slots']),4);self.assertEqual(a['size'],'1024x1536');self.assertEqual(len(p.jobs(self.owner)),1)
  def test_exact_two_outputs_and_identity_prompt(self):
   self.ready();j=self.make('same',referenceId='ref');self.assertEqual(len(j['slots']),2);self.assertNotEqual(j['status'],'succeeded')
   with patch.object(p,'reason',return_value={'style':'咖啡馆侧光'}),patch.object(p,'submit_image',side_effect=['first','second']) as submit,patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/result.jpg'}]}),patch.object(p,'remote_image',return_value=self.img):p.execute(j['id'])
