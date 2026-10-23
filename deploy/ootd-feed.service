@@ -10,6 +10,7 @@ StateDirectory=ootd-photo
 ReadWritePaths=/var/lib/ootd-photo
 Environment=OOTD_CATALOG_PATH=/var/lib/ootd-photo/catalog.json
 EnvironmentFile=-/var/lib/ootd-photo/grsai.env
+EnvironmentFile=-/var/lib/ootd-photo/mail.env
 Environment=OOTD_PERSONAL_PATH=/var/lib/ootd-photo/personal
 Environment=PORT=8794
 Environment=PYTHONDONTWRITEBYTECODE=1

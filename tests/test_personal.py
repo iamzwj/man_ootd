@@ -45,7 +45,15 @@ class PersonalTests(unittest.TestCase):
  def test_missing_provider_id_is_uncertain(self):
   with patch.object(p,'api',return_value={'status':'accepted'}):
    with self.assertRaises(p.UnknownSubmission):p.submit_image('prompt',[],'864x1152')
+ def test_reasoning_uses_verified_model_and_effort(self):
+  with patch.object(p,'api',return_value={'choices':[{'message':{'content':'{"description":"短发","accessories":[]}'}}]}) as api:
+   self.assertEqual(p.reason('分析',['data:image/jpeg;base64,abc'])['accessories'],[])
+  self.assertEqual(api.call_args.args[1]['model'],'gpt-5.6-terra');self.assertEqual(api.call_args.args[1]['reasoning_effort'],'low')
+ def test_complete_profile_persists_four_distinct_views(self):
+  j=self.make()
+  with patch.object(p,'reason',return_value={'description':'短发成年男性','accessories':[],'missingViews':['背面']}) as reason,patch.object(p,'submit_image',side_effect=['a','b','c','d']),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/result.jpg'}]}),patch.object(p,'remote_image',return_value=self.img):p.execute(j['id'])
+  profile=p.read_profile(self.owner);self.assertEqual(set(profile['views']),{'front','side','back','face'});self.assertEqual(len(set(profile['views'].values())),4);self.assertEqual(p.load_job(j['id'])['status'],'succeeded');self.assertIn('不包括杯子',reason.call_args.args[0])
  def test_model_ids_and_protocol(self):
   with patch.object(p,'api',return_value={'data':{'id':'123'}}) as api:self.assertEqual(p.submit_image('prompt',['data:image/jpeg;base64,abc'],'864x1152'),'123')
-  self.assertEqual(api.call_args.args[0],'/v1/api/generate');self.assertEqual(api.call_args.args[1]['model'],'gpt-image-2.5');self.assertEqual(api.call_args.args[1]['replyType'],'async')
+  self.assertEqual(api.call_args.args[0],'/v1/api/generate');self.assertEqual(api.call_args.args[1]['model'],'gpt-image-2');self.assertEqual(api.call_args.args[1]['replyType'],'async')
 if __name__=='__main__':unittest.main()

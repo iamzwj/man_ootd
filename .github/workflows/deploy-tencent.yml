@@ -37,8 +37,8 @@ jobs:
           node --check personal.js
           node --test tests/feed.test.mjs
           /tmp/ootd-build-venv/bin/python -m unittest discover -s tests -p 'test_*.py'
-          python3 -m py_compile server.py personal.py deploy/configure_proxy.py
-          tar -czf /tmp/ootd.tar.gz index.html style.css app.js personal.js feed-utils.js sw.js server.py personal.py visual_filter.py photo-catalog.json photographer-sources.json rejected-photo-fingerprints.json deploy
+          python3 -m py_compile server.py personal.py email_auth.py deploy/configure_proxy.py
+          tar -czf /tmp/ootd.tar.gz index.html style.css app.js personal.js feed-utils.js sw.js server.py personal.py email_auth.py visual_filter.py photo-catalog.json photographer-sources.json rejected-photo-fingerprints.json deploy
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}

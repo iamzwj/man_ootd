@@ -7,9 +7,10 @@ from urllib.request import Request, urlopen, build_opener, HTTPRedirectHandler
 from urllib.error import HTTPError
 from urllib.parse import urlparse, quote
 from PIL import Image, ImageOps
+import email_auth
 
-IMAGE_MODEL='gpt-image-2.5'
-REASON_MODEL='gemini-3.1-pro'
+IMAGE_MODEL='gpt-image-2'
+REASON_MODEL='gpt-5.6-terra'
 ROOT=Path(os.getenv('OOTD_PERSONAL_PATH',str(Path.home()/'.local/share/ootd-personal')))
 WORKERS=concurrent.futures.ThreadPoolExecutor(max_workers=3)
 ACTIVE=set(); GUARD=threading.RLock()
@@ -26,7 +27,12 @@ def db():
  c.execute('PRAGMA journal_mode=WAL')
  c.executescript('''CREATE TABLE IF NOT EXISTS assets(id TEXT PRIMARY KEY,owner TEXT,path TEXT,created REAL);
  CREATE TABLE IF NOT EXISTS profiles(owner TEXT PRIMARY KEY,data TEXT);
- CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,owner TEXT,request_key TEXT,data TEXT,created REAL,UNIQUE(owner,request_key));''')
+ CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,owner TEXT,request_key TEXT,data TEXT,created REAL,UNIQUE(owner,request_key));
+ CREATE TABLE IF NOT EXISTS auth_accounts(id TEXT PRIMARY KEY,email TEXT UNIQUE,created REAL);
+ CREATE TABLE IF NOT EXISTS auth_sessions(hash TEXT PRIMARY KEY,owner TEXT,email TEXT,expires REAL);
+ CREATE TABLE IF NOT EXISTS auth_codes(email TEXT PRIMARY KEY,digest TEXT,expires REAL,attempts INTEGER,sent REAL);
+ CREATE TABLE IF NOT EXISTS auth_mail_log(email TEXT,ip TEXT,created REAL);
+ CREATE TABLE IF NOT EXISTS auth_attempts(ip TEXT,created REAL);''')
  try:
   with c:yield c
  finally:c.close()
@@ -92,7 +98,7 @@ def api(path,body=None):
 
 def reason(prompt,images):
  content=[{'type':'text','text':prompt}]+[{'type':'image_url','image_url':{'url':u}} for u in images]
- r=api('/v1/chat/completions',{'model':REASON_MODEL,'messages':[{'role':'user','content':content}],'max_tokens':3500})
+ r=api('/v1/chat/completions',{'model':REASON_MODEL,'messages':[{'role':'user','content':content}],'max_tokens':3500,'reasoning_effort':'low'})
  try:
   text=r['choices'][0]['message']['content'].strip()
   if text.startswith('```'):text=text.split('\n',1)[1].rsplit('```',1)[0]
@@ -137,7 +143,7 @@ def execute(jid):
   if not j.get('prompt'):
    j['stage']='分析形象' if j['kind']=='profile' else '分析参考照片';save_job(j)
    if j['kind']=='profile':
-    summary=reason('分析这些同一位成年人的照片，只写可见外观，不猜姓名、国籍、健康。返回 JSON：description（脸型、五官、发型、体态的具体中文描述），accessories（反复出现的配饰字符串数组），missingViews（未见的正面、侧面、背面视角数组）。无法看见的细节写不确定。',images)
+    summary=reason('分析这些同一位成年人的照片，只写可见外观，不猜姓名、国籍、健康。返回 JSON：description（脸型、五官、发型、体态的具体中文描述），accessories（本人实际穿戴的配饰字符串数组，只包括眼镜、耳饰、项链、手表、戒指等，不包括杯子、手机、家具或背景道具；没有则返回空数组；只有单张照片时不要断言经常佩戴），missingViews（未见的正面、侧面、背面视角数组）。无法看见的细节写不确定。',images)
     if not isinstance(summary.get('description'),str) or not isinstance(summary.get('accessories'),list):raise UserError('形象分析字段不完整，请重试')
     summary['description']=summary['description'][:3000]
     summary['missingViews']=[x[:40] for x in summary.get('missingViews',[]) if isinstance(x,str)][:4] if isinstance(summary.get('missingViews',[]),list) else []
@@ -173,7 +179,7 @@ def execute(jid):
       url=generated_url(r)
       if not url:raise UserError('生成任务完成但没有图片，请重试')
       s['asset']=store_asset(j['owner'],remote_image(url));s['status']='succeeded';s.pop('error',None)
-     elif state in {'failed','error','cancelled','canceled'}:s['status']='failed';s['error']='GRsai 生成失败，请重试'
+     elif state in {'failed','error','cancelled','canceled'}:s['status']='failed';s['providerFailed']=True;s['error']='GRsai 生成失败，请重试'
      else:s['progress']=d.get('progress',0)
      save_job(j)
     except UserError as e:s['lastError']=str(e);save_job(j)
@@ -252,26 +258,38 @@ def handle(h,catalog):
  token=cookie['ootd_personal'].value if 'ootd_personal' in cookie else ''
  new=not (len(token)==64 and all(c in '0123456789abcdef' for c in token))
  if new:token=secrets.token_hex(32)
- owner=hashlib.sha256(token.encode()).hexdigest()
+ legacy_owner=hashlib.sha256(token.encode()).hexdigest()
+ login=email_auth.session(token);owner=login['owner'] if login else legacy_owner
+ ip=h.headers.get('X-Real-IP',h.client_address[0]) if h.client_address[0] in {'127.0.0.1','::1'} else h.client_address[0]
+ expire_cookie=False
  def send(code,data=None,raw=None):
   body=raw if raw is not None else json.dumps(data,ensure_ascii=False).encode();h.send_response(code)
   h.send_header('Content-Type','image/jpeg' if raw is not None else 'application/json; charset=utf-8');h.send_header('Cache-Control','private, no-store');h.send_header('X-Content-Type-Options','nosniff');h.send_header('Content-Length',str(len(body)))
-  if new:h.send_header('Set-Cookie','ootd_personal='+token+'; HttpOnly; SameSite=Lax; Path=/api/personal; Max-Age=31536000'+('' if h.headers.get('Host','').startswith(('localhost','127.0.0.1')) else '; Secure'))
+  if new:h.send_header('Set-Cookie','ootd_personal='+token+'; HttpOnly; SameSite=Lax; Path=/api/personal; Max-Age='+('0' if expire_cookie else '2592000')+('' if h.headers.get('Host','').startswith(('localhost','127.0.0.1')) else '; Secure'))
   h.end_headers();h.wfile.write(body)
  try:
   if h.command=='GET':
-   if path=='/api/personal':send(200,{'profile':read_profile(owner),'jobs':[public_job(j) for j in jobs(owner)],'configured':bool(os.getenv('GRSAI_API_KEY')),'imageModel':IMAGE_MODEL,'reasonModel':REASON_MODEL})
-   elif path.startswith('/api/personal/assets/'):send(200,raw=asset(owner,path))
+   if path=='/api/personal':send(200,{'authenticated':bool(login),'user':{'email':login['email']} if login else None,'loginConfigured':email_auth.configured(),'profile':read_profile(owner) if login else {'photos':[],'views':{},'summary':None},'jobs':[public_job(j) for j in jobs(owner)] if login else [],'configured':bool(os.getenv('GRSAI_API_KEY')),'imageModel':IMAGE_MODEL,'reasonModel':REASON_MODEL})
+   elif path.startswith('/api/personal/assets/'):
+    if not login:raise email_auth.AuthError('请先登录',401)
+    send(200,raw=asset(owner,path))
    else:send(404,{'error':'未找到'})
    return True
   origin=h.headers.get('Origin')
   if origin and urlparse(origin).netloc!=h.headers.get('Host'):send(403,{'error':'请求来源无效'});return True
   if h.headers.get('Content-Type','').split(';')[0]!='application/json':raise UserError('请求格式无效')
+  is_auth=path in {'/api/personal/auth/send','/api/personal/auth/verify','/api/personal/auth/logout'}
+  if not is_auth and not login:raise email_auth.AuthError('请先登录后再使用个人形象与生图功能',401)
   length=int(h.headers.get('Content-Length','0'))
-  if not 0<length<=24_000_000:raise UserError('上传内容过大，最多上传 12 张照片')
+  if not 0<length<=(8192 if is_auth else 24_000_000):raise UserError('上传内容过大，最多上传 12 张照片')
   q=json.loads(h.rfile.read(length))
   if not isinstance(q,dict):raise UserError('请求格式无效')
-  if path=='/api/personal/upload':
+  if path=='/api/personal/auth/send':send(200,email_auth.send_code(q.get('email'),ip))
+  elif path=='/api/personal/auth/verify':
+   token,user=email_auth.verify(q.get('email'),q.get('code'),legacy_owner,ip);new=True;send(200,{'authenticated':True,'user':user})
+  elif path=='/api/personal/auth/logout':
+   email_auth.logout(token);token='';new=True;expire_cookie=True;send(200,{'ok':True})
+  elif path=='/api/personal/upload':
    uploads=q.get('photos',[]);p=read_profile(owner)
    if not isinstance(uploads,list) or not uploads or len(uploads)+len(p['photos'])>12:raise UserError('形象库最多保留 12 张原始照片')
    decoded=[]
@@ -292,7 +310,9 @@ def handle(h,catalog):
     if j['revision']!=read_profile(owner).get('revision'):raise UserError('形象照片已更新，请新建任务')
     if any(s.get('status')=='uncertain' for s in j['slots']):raise UserError('提交状态未知，不能安全地自动重试，请稍后查看历史')
     for s in j['slots']:
-     if not s.get('asset'):s['status']='running' if s.get('providerId') else 'queued';s.pop('error',None)
+     if not s.get('asset'):
+      if s.pop('providerFailed',False):s.pop('providerId',None)
+      s['status']='running' if s.get('providerId') else 'queued';s.pop('error',None)
     j['status']='queued';j.pop('error',None);save_job(j);launch(j['id']);send(202,{'job':public_job(j)})
   elif path=='/api/personal/delete':
    if any(j['status'] not in TERMINAL for j in jobs(owner)):raise UserError('请等待正在进行的任务结束后再删除')
@@ -302,6 +322,7 @@ def handle(h,catalog):
    for r in paths:Path(r[0]).unlink(missing_ok=True)
    send(200,{'ok':True})
   else:send(404,{'error':'未找到'})
+ except email_auth.AuthError as e:send(e.status,{'error':str(e)})
  except UserError as e:send(400,{'error':str(e)})
  except (ValueError,TypeError):send(400,{'error':'请求格式无效'})
  except (BrokenPipeError,ConnectionResetError):pass
