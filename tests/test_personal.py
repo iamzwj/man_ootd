@@ -60,14 +60,12 @@ class PersonalTests(unittest.TestCase):
   for result in [{'isCloseUp':False,'faceHeightRatio':.12,'faceWidthRatio':.1},{'isCloseUp':True,'faceHeightRatio':.2,'faceWidthRatio':.6},{'isCloseUp':True,'faceHeightRatio':True,'faceWidthRatio':True},{}]:
    with patch.object(p,'reason',return_value=result):self.assertFalse(p.face_is_closeup(self.img))
   with patch.object(p,'reason',return_value={'isCloseUp':True,'faceHeightRatio':.75,'faceWidthRatio':.65}):self.assertTrue(p.face_is_closeup(self.img))
- def test_face_only_costs_one_and_preserves_other_views(self):
-  self.ready();j=self.make('face');self.assertEqual(len(j['slots']),1);self.assertEqual(p.credit_balance(self.owner)['remaining'],9)
-  with patch.object(p,'reason',return_value={'description':'短发','accessories':[]}),patch.object(p,'submit_image',return_value='face-id'),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/face.jpg'}]}),patch.object(p,'remote_image',return_value=self.img),patch.object(p,'face_is_closeup',return_value=True):p.execute(j['id'])
-  profile=p.read_profile(self.owner);self.assertEqual(len(profile['views']),4);self.assertEqual(profile['views']['front'],self.photo);self.assertNotEqual(profile['views']['face'],self.photo)
+ def test_standalone_face_task_is_not_a_supported_action(self):
+  with self.assertRaises(p.UserError):self.make('face')
  def test_wrong_face_output_fails_and_refunds(self):
-  j=self.make('face')
+  j=self.make()
   with patch.object(p,'reason',return_value={'description':'短发','accessories':[]}),patch.object(p,'submit_image',return_value='face-id'),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/wrong.jpg'}]}),patch.object(p,'remote_image',return_value=self.img),patch.object(p,'face_is_closeup',return_value=False):p.execute(j['id'])
-  self.assertEqual(p.load_job(j['id'])['status'],'failed');self.assertEqual(p.credit_balance(self.owner)['remaining'],10)
+  self.assertEqual(p.load_job(j['id'])['status'],'partial');self.assertEqual(p.credit_balance(self.owner)['remaining'],7);self.assertNotIn('face',p.read_profile(self.owner)['views'])
  def test_model_ids_and_protocol(self):
   with patch.object(p,'api',return_value={'data':{'id':'123'}}) as api:self.assertEqual(p.submit_image('prompt',['data:image/jpeg;base64,abc'],'864x1152'),'123')
   self.assertEqual(api.call_args.args[0],'/v1/api/generate');self.assertEqual(api.call_args.args[1]['model'],'gpt-image-2');self.assertEqual(api.call_args.args[1]['replyType'],'async')

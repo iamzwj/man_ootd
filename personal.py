@@ -291,8 +291,8 @@ def create_job(owner,q,catalog):
   if daily>=int(os.getenv('OOTD_GLOBAL_DAILY_JOBS','100')):raise UserError('今日生图服务额度已用完，请稍后再试')
   if not os.getenv('GRSAI_API_KEY'):raise UserError('生图服务尚未配置')
   kind=q.get('kind')
-  if kind not in {'profile','face','same','random'}:raise UserError('任务类型无效')
-  required=4 if kind=='profile' else 1 if kind=='face' else 2
+  if kind not in {'profile','same','random'}:raise UserError('任务类型无效')
+  required=4 if kind=='profile' else 2
   if credit_balance(owner)['remaining']<required:raise UserError('积分不足：本次需要 %d 积分，今日剩余 %d 积分'%(required,credit_balance(owner)['remaining']))
   ref=None
   if kind not in {'profile','face'}:
@@ -306,8 +306,6 @@ def create_job(owner,q,catalog):
   if kind=='profile':
    j['size']='1024x1536'
    j['slots']=[{'key':key,'label':label,'status':'queued'} for key,label in [('front','正面全身'),('side','侧面全身'),('back','背面全身'),('face','面部特写')]]
-  elif kind=='face':
-   j['size']='1024x1024';j['slots']=[{'key':'face','label':'面部特写','status':'queued'}]
   else:
    j['photos']=(p['photos'][:4]+[p['views']['face'],p['views']['front']])[:6]
    j['referenceAsset']=store_asset(owner,remote_image(ref['image']));j['reference']={'id':ref['id'],'title':ref['title'],'asset':j['referenceAsset']}
