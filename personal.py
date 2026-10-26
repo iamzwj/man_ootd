@@ -49,7 +49,7 @@ def save_profile(owner,p):
  with db() as c:c.execute('INSERT OR REPLACE INTO profiles VALUES(?,?)',(owner,json.dumps(p,ensure_ascii=False)))
 
 def jobs(owner):
- with db() as c:rows=c.execute('SELECT data FROM jobs WHERE owner=? ORDER BY created DESC LIMIT 30',(owner,)).fetchall()
+ with db() as c:rows=c.execute('SELECT data FROM jobs WHERE owner=? ORDER BY created DESC',(owner,)).fetchall()
  return [json.loads(r[0]) for r in rows]
 
 def load_job(jid):
