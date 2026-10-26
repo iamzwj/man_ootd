@@ -210,7 +210,7 @@ def execute(jid):
     ref='data:image/jpeg;base64,'+base64.b64encode(asset(j['owner'],j['referenceAsset'])).decode()
     scene=reason('只分析最后一张场景参考的摄影风格，不描述或复制其中人物的脸。返回 JSON：style（详细中文描述场景、自然姿态、构图、光线、色彩、镜头质感）。前面的图片是用户本人，只用于保持身份。',images+[ref])
     if not isinstance(scene.get('style'),str):raise UserError('场景分析字段不完整，请重试')
-    j['prompt']='为前几张身份参考中的同一个成年人拍摄一张自然生活感摄影。严格保持用户本人的脸型五官、发型和体态。最后一张仅作场景、光影、构图和姿态参考，绝不能复制最后一张里的人脸。完整日常衣着、无裸露、无内衣泳装。禁止文字、水印、拼图。摄影要求：'+scene['style']+'。用户常见配饰：'+json.dumps(p.get('summary',{}).get('accessories',[]),ensure_ascii=False)
+    j['prompt']='为前几张身份参考中的同一个成年人拍摄一张自然生活感摄影。身份参考依次为用户选定形象方案的面部特写、正面、侧面、背面；以第一张面部特写锁定脸型五官、发型和年龄感，以其余三张保持同一人的体态。严格保持所选方案，不重新解释或混用其他形象。最后一张仅作场景、光影、构图和姿态参考，绝不能复制最后一张里的人脸。完整日常衣着、无裸露、无内衣泳装。禁止文字、水印、拼图。摄影要求：'+scene['style']+'。用户常见配饰：'+json.dumps(j.get('identitySummary',p.get('summary') or {}).get('accessories',[]),ensure_ascii=False)
    save_job(j)
   if j['kind'] not in {'profile','face','view'}:images.append(data_uri(j['owner'],j['referenceAsset']))
   j['stage']='生成形象参考' if j['kind'] in {'profile','face','view'} else '生成个人照片';j['status']='running';save_job(j)
@@ -307,6 +307,7 @@ def create_job(owner,q,catalog):
   ref=None
   if kind not in {'profile','face','view'}:
    if not p.get('summary') or len(p.get('views',{}))<4:raise UserError('请先完成形象库整理，再生成个人照片')
+   if 'schemeId' in q and q['schemeId']!=p.get('selectedScheme'):raise UserError('形象方案已变更，请确认所选方案后重新生成')
    candidates=q.get('referenceIds',[]) if kind=='random' else [q.get('referenceId')]
    if not isinstance(candidates,list) or len(candidates)>500:raise UserError('参考图片无效')
    candidate_ids={x for x in candidates if isinstance(x,str)};available=[r for r in catalog if r['id'] in candidate_ids]
@@ -322,7 +323,9 @@ def create_job(owner,q,catalog):
    names={'front':'正面全身','side':'侧面全身','back':'背面全身','face':'面部特写'}
    j['slots']=[{'key':q['view'],'label':names[q['view']],'status':'queued'}]
   else:
-   j['photos']=(p['photos'][:4]+[p['views']['face'],p['views']['front']])[:6]
+   j['identityViews']={k:p['views'][k] for k in ('face','front','side','back')}
+   j['identityScheme']=p.get('selectedScheme');j['identitySummary']=p.get('summary') or {}
+   j['photos']=list(j['identityViews'].values())
    j['referenceAsset']=store_asset(owner,remote_image(ref['image']));j['reference']={'id':ref['id'],'title':ref['title'],'asset':j['referenceAsset']}
    if ref.get('width',0)>ref.get('height',1):j['size']='1152x864'
    j['slots']=[{'key':str(i),'label':'照片 '+str(i),'status':'queued'} for i in (1,2)]
