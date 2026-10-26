@@ -134,7 +134,9 @@ def api(path,body=None):
   if '修复' in msg or 'maintenance' in msg.lower():raise UserError('GRsai：该模型正在修复，请稍后重试')
   raise UserError('GRsai 请求失败（%s）%s'%(e.code,'：'+msg[:160].replace(key,'[hidden]') if msg else ''))
  if not isinstance(result,dict):raise UserError('GRsai 返回格式无效')
- if result.get('error'):raise UserError('GRsai 未完成请求，请稍后重试')
+ nested=result.get('data') or result.get('result') or result
+ state=str(nested.get('status',result.get('status',''))).lower() if isinstance(nested,dict) else ''
+ if result.get('error') and not (path.startswith('/v1/api/result') and state in {'failed','error','cancelled','canceled'}):raise UserError('GRsai 未完成请求，请稍后重试')
  return result
 
 def reason(prompt,images):
@@ -224,38 +226,41 @@ def execute(jid):
    except UnknownSubmission as e:s['status']='uncertain';s['error']=str(e);save_job(j)
    except UserError as e:s['status']='failed';s['error']=str(e);save_job(j)
    except Exception:s['status']='uncertain';s['error']='提交连接中断，结果状态未知，未自动重复提交';save_job(j)
-  deadline=time.time()+900
-  while time.time()<deadline:
+  deadline=j.setdefault('pollDeadline',j['created']+900);save_job(j)
+  while True:
    pending=[s for s in j['slots'] if s.get('providerId') and not s.get('asset') and s.get('status') not in {'failed','uncertain'}]
    if not pending:break
    for s in pending:
     try:
-     r=api('/v1/api/result?id='+quote(s['providerId']));d=r.get('data') or r.get('result') or r;state=d.get('status',r.get('status',''))
+     r=api('/v1/api/result?id='+quote(s['providerId']));d=r.get('data') or r.get('result') or r;state=str(d.get('status',r.get('status',''))).lower()
      if state in {'succeeded','completed','success'}:
       s['providerCompleted']=True
       url=generated_url(r)
       if not url:raise UserError('生成任务完成但没有图片，请重试')
       data=remote_image(url)
       if j['kind'] in {'profile','face'} and s['key']=='face':
+       s['phase']='checking_face';save_job(j)
        try:valid=face_is_closeup(data)
        except Exception:s['status']='failed';s['error']='面部特写取景检查暂不可用，可重试检查';save_job(j);continue
        if not valid:
         s['status']='failed';s['providerFailed']=True;s['error']='这张图不是合格的面部特写，已退回该张积分，请重试';save_job(j);continue
        s['framingChecked']=True
-      s['asset']=store_asset(j['owner'],data);s['status']='succeeded';s.pop('error',None)
+      s['asset']=store_asset(j['owner'],data);s['phase']='done';s['status']='succeeded';s.pop('error',None)
      elif state in {'failed','error','cancelled','canceled'}:s['status']='failed';s['providerFailed']=True;s['error']='GRsai 生成失败，请重试'
      else:s['progress']=d.get('progress',0)
      save_job(j)
     except UserError as e:s['lastError']=str(e);save_job(j)
     except Exception:s['lastError']='查询进度连接中断，正在重试';save_job(j)
+   if time.time()>=deadline:break
    if any(s.get('status')=='running' for s in j['slots']):time.sleep(5)
   for s in j['slots']:
-   if s.get('status')=='running':s['status']='failed';s['error']=s.get('lastError','生成超时，可重试查询已有任务')
+   if s.get('status')=='running':s['status']='failed';s['error']=s.get('lastError','等待上游超时；已保留成图，重试只处理未完成图片')
   done=sum(bool(s.get('asset')) for s in j['slots']);j['status']='succeeded' if done==len(j['slots']) else 'partial' if done else 'uncertain' if any(s.get('status')=='uncertain' for s in j['slots']) else 'failed'
   if j['kind'] in {'profile','face'} and j.get('summary'):
-   p=read_profile(j['owner'])
-   if p.get('revision')==j['revision']:
-    p['summary']=j['summary'];p['views']={**(p.get('views',{}) if j['kind']=='face' else {}),**{s['key']:s['asset'] for s in j['slots'] if s.get('asset')}};save_profile(j['owner'],p)
+   with GUARD:
+    p=read_profile(j['owner'])
+    if p.get('revision')==j['revision']:
+     p['summary']=j['summary'];p['views']={**(p.get('views',{}) if j['kind']=='face' else {}),**{s['key']:s['asset'] for s in j['slots'] if s.get('asset')}};save_profile(j['owner'],p)
  except UserError as e:j['status']='failed';j['error']=str(e)
  except Exception:j['status']='failed';j['error']='任务暂时中断，已保存进度，可稍后重试'
  finally:
@@ -316,6 +321,22 @@ def create_job(owner,q,catalog):
    c.execute('INSERT INTO jobs VALUES(?,?,?,?,?)',(jid,owner,key,json.dumps(j,ensure_ascii=False),j['created']))
   launch(jid);return j
 
+def remove_photo(owner,url):
+ with GUARD:
+  profile=read_profile(owner)
+  if not isinstance(url,str) or url not in profile['photos']:raise UserError('这张照片不在当前形象库中')
+  profile['photos']=[photo for photo in profile['photos'] if photo!=url]
+  # Existing generated images and submitted reference snapshots are unaffected.
+  save_profile(owner,profile)
+  with db() as c:
+   history=[json.loads(r[0]) for r in c.execute('SELECT data FROM jobs WHERE owner=?',(owner,)).fetchall()]
+   referenced=any(url in job.get('photos',[]) or job.get('referenceAsset')==url for job in history) or url in profile.get('views',{}).values()
+   if not referenced:
+    row=c.execute('SELECT path FROM assets WHERE id=? AND owner=?',(url.rsplit('/',1)[-1],owner)).fetchone()
+    c.execute('DELETE FROM assets WHERE id=? AND owner=?',(url.rsplit('/',1)[-1],owner))
+    if row:Path(row[0]).unlink(missing_ok=True)
+  return profile
+
 def public_job(j):return {k:v for k,v in j.items() if k not in {'owner','photos','prompt','revision','referenceAsset','requestKey'}}
 
 def handle(h,catalog):
@@ -367,6 +388,7 @@ def handle(h,catalog):
     try:decoded.append(clean_image(base64.b64decode(u.split(',',1)[1],validate=True)))
     except ValueError:raise UserError('图片编码无效')
    p['photos'] += [store_asset(owner,d) for d in decoded];p['views']={};p['summary']=None;p['revision']=secrets.token_hex(8);save_profile(owner,p);send(200,{'profile':p})
+  elif path=='/api/personal/photo/remove':send(200,{'profile':remove_photo(owner,q.get('photo'))})
   elif path=='/api/personal/generate':send(202,{'job':public_job(create_job(owner,q,catalog()))})
   elif path=='/api/personal/retry':
    with GUARD:
@@ -385,7 +407,7 @@ def handle(h,catalog):
       if not s.get('asset'):
        if s.pop('providerFailed',False):s.pop('providerId',None)
        s['status']='running' if s.get('providerId') else 'queued';s.pop('error',None)
-     j['status']='queued';j.pop('error',None);j['updated']=time.time()
+     j['status']='queued';j['pollDeadline']=time.time()+900;j.pop('error',None);j['updated']=time.time()
      c.execute('UPDATE jobs SET data=? WHERE id=?',(json.dumps(j,ensure_ascii=False),j['id']))
     launch(j['id']);send(202,{'job':public_job(j)})
   elif path=='/api/personal/delete':

@@ -1,4 +1,4 @@
-import io,tempfile,unittest
+import io,json,tempfile,time,unittest
 from pathlib import Path
 from unittest.mock import patch
 from PIL import Image
@@ -66,6 +66,31 @@ class PersonalTests(unittest.TestCase):
   j=self.make()
   with patch.object(p,'reason',return_value={'description':'短发','accessories':[]}),patch.object(p,'submit_image',return_value='face-id'),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/wrong.jpg'}]}),patch.object(p,'remote_image',return_value=self.img),patch.object(p,'face_is_closeup',return_value=False):p.execute(j['id'])
   self.assertEqual(p.load_job(j['id'])['status'],'partial');self.assertEqual(p.credit_balance(self.owner)['remaining'],7);self.assertNotIn('face',p.read_profile(self.owner)['views'])
+ def test_failed_result_with_error_is_not_treated_as_transport_error(self):
+  for result in [{'status':'failed','error':'generate image failed'},{'data':{'status':'failed'},'error':{'message':'failed'}}]:
+   with patch.dict('os.environ',{'GRSAI_API_KEY':'test'}),patch.object(p,'urlopen',return_value=io.BytesIO(json.dumps(result).encode())):
+    self.assertEqual(p.api('/v1/api/result?id=private'),result)
+ def test_long_running_profile_finishes_partial_on_upstream_failure(self):
+  j=self.make();j['prompt']='existing prompt';j['summary']={'description':'short hair','accessories':[]};j['created']=time.time()-4000
+  for slot in j['slots'][:3]:slot['asset']=self.photo;slot['status']='succeeded'
+  j['slots'][3].update(providerId='failed-face',status='running');p.save_job(j)
+  with patch.object(p,'api',return_value={'status':'failed','error':'generate image failed'}),patch.object(p,'submit_image') as submit:p.execute(j['id'])
+  done=p.load_job(j['id']);self.assertEqual(done['status'],'partial');self.assertTrue(done['slots'][3]['providerFailed']);self.assertEqual(len(p.read_profile(self.owner)['views']),3);self.assertEqual(p.credit_balance(self.owner)['remaining'],7);submit.assert_not_called()
+ def test_poll_deadline_is_not_extended_by_resume(self):
+  self.ready();j=self.make('same',referenceId='ref');j['prompt']='existing prompt';j['pollDeadline']=time.time()-1
+  for slot in j['slots']:slot.update(providerId='pending',status='running')
+  p.save_job(j)
+  with patch.object(p,'api',return_value={'status':'running'}),patch.object(p.time,'sleep') as sleep:p.execute(j['id'])
+  done=p.load_job(j['id']);self.assertEqual(done['status'],'failed');self.assertEqual(done['pollDeadline'],j['pollDeadline']);sleep.assert_not_called()
+ def test_remove_only_selected_photo_preserves_views_and_credits(self):
+  other=p.store_asset(self.owner,self.img);profile=p.read_profile(self.owner);profile.update(photos=[self.photo,other],views={'front':'generated-reference'},summary={'description':'keep'});p.save_profile(self.owner,profile)
+  result=p.remove_photo(self.owner,self.photo);self.assertEqual(result['photos'],[other]);self.assertEqual(result['views'],profile['views']);self.assertEqual(result['summary'],profile['summary']);self.assertEqual(p.credit_balance(self.owner)['remaining'],10)
+  with self.assertRaises(p.UserError):p.asset(self.owner,self.photo)
+ def test_remove_cannot_access_another_account(self):
+  with self.assertRaises(p.UserError):p.remove_photo('other-owner',self.photo)
+  self.assertTrue(p.asset(self.owner,self.photo))
+ def test_remove_keeps_submitted_task_reference_snapshot(self):
+  j=self.make();result=p.remove_photo(self.owner,self.photo);self.assertEqual(result['photos'],[]);self.assertEqual(p.load_job(j['id'])['photos'],[self.photo]);self.assertTrue(p.asset(self.owner,self.photo))
  def test_model_ids_and_protocol(self):
   with patch.object(p,'api',return_value={'data':{'id':'123'}}) as api:self.assertEqual(p.submit_image('prompt',['data:image/jpeg;base64,abc'],'864x1152'),'123')
   self.assertEqual(api.call_args.args[0],'/v1/api/generate');self.assertEqual(api.call_args.args[1]['model'],'gpt-image-2');self.assertEqual(api.call_args.args[1]['replyType'],'async')

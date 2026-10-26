@@ -14,3 +14,5 @@
 .account-bar{flex-wrap:wrap;align-items:center}#accountCredits{font-size:12px;color:#465a39;white-space:nowrap}.account-bar #accountEmail{flex:1;min-width:100px}.credit-rule{font-size:11px;margin:12px 0 0;line-height:1.7}
 
 .generation-slots.single{grid-template-columns:minmax(0,420px)}
+
+.identity-photo{position:relative;margin:0;flex:0 0 70px}.identity-photo img{display:block}.remove-photo{position:absolute;top:2px;right:2px;display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:#fffef2ed;color:#4d5846;font-size:18px!important;line-height:1;box-shadow:0 1px 5px #0002}.remove-photo:focus-visible{outline:2px solid #667d55;outline-offset:2px}

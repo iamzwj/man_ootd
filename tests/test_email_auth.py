@@ -48,7 +48,7 @@ class EmailAuthTests(unittest.TestCase):
   c1=self.code();c2=self.code('b@example.com');t1,_=a.verify('a@example.com',c1,'one','ip');t2,_=a.verify('b@example.com',c2,'two','ip')
   self.assertNotEqual(a.session(t1)['owner'],a.session(t2)['owner'])
  def test_unauthenticated_generation_and_assets_blocked(self):
-  for path,data in [('/generate',{'kind':'profile'}),('/upload',{'photos':[]}),('/retry',{}),('/assets/unknown',None)]:
+  for path,data in [('/generate',{'kind':'profile'}),('/upload',{'photos':[]}),('/retry',{}),('/photo/remove',{'photo':'private'}),('/assets/unknown',None)]:
    h=Handler(path,data);result=h.run();self.assertEqual(h.status,401);self.assertIn('登录',result['error'])
   h=Handler();result=h.run();self.assertFalse(result['authenticated']);self.assertEqual(result['jobs'],[])
  def test_real_http_contract_cookie_and_logout(self):
