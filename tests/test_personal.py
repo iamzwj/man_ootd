@@ -51,8 +51,23 @@ class PersonalTests(unittest.TestCase):
   self.assertEqual(api.call_args.args[1]['model'],'gpt-5.6-terra');self.assertEqual(api.call_args.args[1]['reasoning_effort'],'low')
  def test_complete_profile_persists_four_distinct_views(self):
   j=self.make()
-  with patch.object(p,'reason',return_value={'description':'短发成年男性','accessories':[],'missingViews':['背面']}) as reason,patch.object(p,'submit_image',side_effect=['a','b','c','d']),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/result.jpg'}]}),patch.object(p,'remote_image',return_value=self.img):p.execute(j['id'])
+  with patch.object(p,'reason',return_value={'description':'短发成年男性','accessories':[],'missingViews':['背面']}) as reason,patch.object(p,'submit_image',side_effect=['a','b','c','d']),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/result.jpg'}]}),patch.object(p,'remote_image',return_value=self.img),patch.object(p,'face_is_closeup',return_value=True):p.execute(j['id'])
   profile=p.read_profile(self.owner);self.assertEqual(set(profile['views']),{'front','side','back','face'});self.assertEqual(len(set(profile['views'].values())),4);self.assertEqual(p.load_job(j['id'])['status'],'succeeded');self.assertIn('不包括杯子',reason.call_args.args[0])
+ def test_face_prompt_has_no_full_body_instructions(self):
+  prompt,size=p.portrait_input({'prompt':'FULL LENGTH HEAD TO TOE, including both shoes','size':'1024x1536','summary':{'description':'短发','accessories':[]}}, {'key':'face'})
+  self.assertEqual(size,'1024x1024');self.assertIn('70%至85%',prompt);self.assertNotIn('FULL LENGTH HEAD TO TOE',prompt);self.assertNotIn('白色休闲鞋',prompt)
+ def test_face_gate_rejects_full_body_and_invalid_json_fields(self):
+  for result in [{'isCloseUp':False,'faceHeightRatio':.12,'faceWidthRatio':.1},{'isCloseUp':True,'faceHeightRatio':.2,'faceWidthRatio':.6},{'isCloseUp':True,'faceHeightRatio':True,'faceWidthRatio':True},{}]:
+   with patch.object(p,'reason',return_value=result):self.assertFalse(p.face_is_closeup(self.img))
+  with patch.object(p,'reason',return_value={'isCloseUp':True,'faceHeightRatio':.75,'faceWidthRatio':.65}):self.assertTrue(p.face_is_closeup(self.img))
+ def test_face_only_costs_one_and_preserves_other_views(self):
+  self.ready();j=self.make('face');self.assertEqual(len(j['slots']),1);self.assertEqual(p.credit_balance(self.owner)['remaining'],9)
+  with patch.object(p,'reason',return_value={'description':'短发','accessories':[]}),patch.object(p,'submit_image',return_value='face-id'),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/face.jpg'}]}),patch.object(p,'remote_image',return_value=self.img),patch.object(p,'face_is_closeup',return_value=True):p.execute(j['id'])
+  profile=p.read_profile(self.owner);self.assertEqual(len(profile['views']),4);self.assertEqual(profile['views']['front'],self.photo);self.assertNotEqual(profile['views']['face'],self.photo)
+ def test_wrong_face_output_fails_and_refunds(self):
+  j=self.make('face')
+  with patch.object(p,'reason',return_value={'description':'短发','accessories':[]}),patch.object(p,'submit_image',return_value='face-id'),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/wrong.jpg'}]}),patch.object(p,'remote_image',return_value=self.img),patch.object(p,'face_is_closeup',return_value=False):p.execute(j['id'])
+  self.assertEqual(p.load_job(j['id'])['status'],'failed');self.assertEqual(p.credit_balance(self.owner)['remaining'],10)
  def test_model_ids_and_protocol(self):
   with patch.object(p,'api',return_value={'data':{'id':'123'}}) as api:self.assertEqual(p.submit_image('prompt',['data:image/jpeg;base64,abc'],'864x1152'),'123')
   self.assertEqual(api.call_args.args[0],'/v1/api/generate');self.assertEqual(api.call_args.args[1]['model'],'gpt-image-2');self.assertEqual(api.call_args.args[1]['replyType'],'async')

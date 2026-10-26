@@ -177,13 +177,26 @@ def generated_url(r):
   if d.get('url'):return d['url']
  return None
 
+FACE_FRAMING='这是一张面部特写，EXTREME CLOSE-UP HEADSHOT，不是全身照、半身照或证件全身照。镜头只取完整头部、少量颈部与肩膀上缘；头顶到下巴占画面高度约70%至85%，脸部占画面宽度至少50%。人物正面直视镜头，清晰呈现眼睛、鼻子、嘴唇、皮肤细节。完整保留头发、耳朵和下巴，头顶留白不超过8%。画面下缘在锁骨附近截止，不得出现胸腹、腰、手、裤子、腿或鞋。背景只留少量干净浅灰区域。禁止远景、全身、宽松取景和大面积背景。'
+
+def portrait_input(j,slot):
+ if slot['key']=='face':
+  summary=j.get('summary',{})
+  return ('为身份参考中同一位成年人拍摄独立面部特写。严格保持本人的脸型五官、发型、年龄感与皮肤特征，不美化换脸。原片只提供人物身份，不沿用原片的身体姿势、远近或全身构图。自然柔和光线，不要文字、水印或拼图。'+FACE_FRAMING+'。本人面部特征参考：'+summary.get('description','')+'。实际穿戴配饰：'+json.dumps(summary.get('accessories',[]),ensure_ascii=False),'1024x1024')
+ return j['prompt'],j['size']
+
+def face_is_closeup(data):
+ result=reason('只检查取景是否是面部特写，不判断身份或好看与否。返回严格 JSON：isCloseUp（布尔值，仅完整头部和少量肩颈为true；半身或全身为false），faceHeightRatio（头顶至下巴占整幅高度的比例0到1），faceWidthRatio（脸宽占整幅宽度的比例0到1）。若看见胸腹、腰、腿或鞋，isCloseUp 必须为false。', ['data:image/jpeg;base64,'+base64.b64encode(data).decode()])
+ h=result.get('faceHeightRatio');w=result.get('faceWidthRatio')
+ return result.get('isCloseUp') is True and type(h) in (float,int) and type(w) in (float,int) and .5<=h<=1 and .4<=w<=1
+
 def execute(jid):
  j=load_job(jid)
  try:
   p=read_profile(j['owner']);images=[data_uri(j['owner'],u) for u in j['photos'][:6]]
   if not j.get('prompt'):
-   j['stage']='分析形象' if j['kind']=='profile' else '分析参考照片';save_job(j)
-   if j['kind']=='profile':
+   j['stage']='分析形象' if j['kind'] in {'profile','face'} else '分析参考照片';save_job(j)
+   if j['kind'] in {'profile','face'}:
     summary=reason('分析这些同一位成年人的照片，只写可见外观，不猜姓名、国籍、健康。返回 JSON：description（脸型、五官、发型、体态的具体中文描述），accessories（本人实际穿戴的配饰字符串数组，只包括眼镜、耳饰、项链、手表、戒指等，不包括杯子、手机、家具或背景道具；没有则返回空数组；只有单张照片时不要断言经常佩戴），missingViews（未见的正面、侧面、背面视角数组）。无法看见的细节写不确定。',images)
     if not isinstance(summary.get('description'),str) or not isinstance(summary.get('accessories'),list):raise UserError('形象分析字段不完整，请重试')
     summary['description']=summary['description'][:3000]
@@ -197,16 +210,17 @@ def execute(jid):
     if not isinstance(scene.get('style'),str):raise UserError('场景分析字段不完整，请重试')
     j['prompt']='为前几张身份参考中的同一个成年人拍摄一张自然生活感摄影。严格保持用户本人的脸型五官、发型和体态。最后一张仅作场景、光影、构图和姿态参考，绝不能复制最后一张里的人脸。完整日常衣着、无裸露、无内衣泳装。禁止文字、水印、拼图。摄影要求：'+scene['style']+'。用户常见配饰：'+json.dumps(p.get('summary',{}).get('accessories',[]),ensure_ascii=False)
    save_job(j)
-  if j['kind']!='profile':images.append(data_uri(j['owner'],j['referenceAsset']))
-  j['stage']='生成形象参考' if j['kind']=='profile' else '生成个人照片';j['status']='running';save_job(j)
+  if j['kind'] not in {'profile','face'}:images.append(data_uri(j['owner'],j['referenceAsset']))
+  j['stage']='生成形象参考' if j['kind'] in {'profile','face'} else '生成个人照片';j['status']='running';save_job(j)
   # Submit independently and persist every upstream id before doing any further work.
   for i,s in enumerate(j['slots']):
    if s.get('asset') or s.get('providerId') or s.get('status') in {'failed','uncertain'}:continue
    s['status']='submitting';save_job(j)
    try:
     views={'front':'正面站立，脸和身体正对相机。FULL LENGTH HEAD TO TOE, including both shoes. 相机退远，完整头顶到双脚，头顶和鞋底上下各留白至少10%，人物占画面高度不超过80%，绝不能裁成半身或截断腿脚。','side':'严格90度侧面站立，头和身体同向侧对相机，不要四分之三角度。FULL LENGTH HEAD TO TOE, including both shoes. 完整头顶到双脚，头顶和鞋底上下各留白至少10%，人物占画面高度不超过80%，绝不裁切腿脚。','back':'严格180度背面站立，后脑和背部正对相机，不回头。FULL LENGTH HEAD TO TOE, including both shoes. 完整头顶到双脚，头顶和鞋底上下各留白至少10%，人物占画面高度不超过80%。','face':'正脸面部特写，头部正对相机，清晰呈现五官，保留完整发型和下巴，穿同一件白色圆领T恤。'}
-    direction=('。视角：'+views[s['key']]+'。缺失角度只能作为 AI 补全参考，不声称是真实记录。') if j['kind']=='profile' else ('。这是独立的第%d张作品，保持同一场景风格，使用略有区别的自然动作和取景。'%(i+1))
-    s['providerId']=submit_image(j['prompt']+direction,images,j['size']);s['status']='running';save_job(j)
+    direction=('。视角：'+views[s['key']]+'。缺失角度只能作为 AI 补全参考，不声称是真实记录。') if j['kind'] in {'profile','face'} else ('。这是独立的第%d张作品，保持同一场景风格，使用略有区别的自然动作和取景。'%(i+1))
+    prompt,size=portrait_input(j,s) if j['kind'] in {'profile','face'} else (j['prompt'],j['size'])
+    s['providerId']=submit_image(prompt+(direction if s['key']!='face' else ''),images,size);s['status']='running';save_job(j)
    except UnknownSubmission as e:s['status']='uncertain';s['error']=str(e);save_job(j)
    except UserError as e:s['status']='failed';s['error']=str(e);save_job(j)
    except Exception:s['status']='uncertain';s['error']='提交连接中断，结果状态未知，未自动重复提交';save_job(j)
@@ -221,7 +235,14 @@ def execute(jid):
       s['providerCompleted']=True
       url=generated_url(r)
       if not url:raise UserError('生成任务完成但没有图片，请重试')
-      s['asset']=store_asset(j['owner'],remote_image(url));s['status']='succeeded';s.pop('error',None)
+      data=remote_image(url)
+      if j['kind'] in {'profile','face'} and s['key']=='face':
+       try:valid=face_is_closeup(data)
+       except Exception:s['status']='failed';s['error']='面部特写取景检查暂不可用，可重试检查';save_job(j);continue
+       if not valid:
+        s['status']='failed';s['providerFailed']=True;s['error']='这张图不是合格的面部特写，已退回该张积分，请重试';save_job(j);continue
+       s['framingChecked']=True
+      s['asset']=store_asset(j['owner'],data);s['status']='succeeded';s.pop('error',None)
      elif state in {'failed','error','cancelled','canceled'}:s['status']='failed';s['providerFailed']=True;s['error']='GRsai 生成失败，请重试'
      else:s['progress']=d.get('progress',0)
      save_job(j)
@@ -231,10 +252,10 @@ def execute(jid):
   for s in j['slots']:
    if s.get('status')=='running':s['status']='failed';s['error']=s.get('lastError','生成超时，可重试查询已有任务')
   done=sum(bool(s.get('asset')) for s in j['slots']);j['status']='succeeded' if done==len(j['slots']) else 'partial' if done else 'uncertain' if any(s.get('status')=='uncertain' for s in j['slots']) else 'failed'
-  if j['kind']=='profile' and j.get('summary'):
+  if j['kind'] in {'profile','face'} and j.get('summary'):
    p=read_profile(j['owner'])
    if p.get('revision')==j['revision']:
-    p['summary']=j['summary'];p['views']={s['key']:s['asset'] for s in j['slots'] if s.get('asset')};save_profile(j['owner'],p)
+    p['summary']=j['summary'];p['views']={**(p.get('views',{}) if j['kind']=='face' else {}),**{s['key']:s['asset'] for s in j['slots'] if s.get('asset')}};save_profile(j['owner'],p)
  except UserError as e:j['status']='failed';j['error']=str(e)
  except Exception:j['status']='failed';j['error']='任务暂时中断，已保存进度，可稍后重试'
  finally:
@@ -270,11 +291,11 @@ def create_job(owner,q,catalog):
   if daily>=int(os.getenv('OOTD_GLOBAL_DAILY_JOBS','100')):raise UserError('今日生图服务额度已用完，请稍后再试')
   if not os.getenv('GRSAI_API_KEY'):raise UserError('生图服务尚未配置')
   kind=q.get('kind')
-  if kind not in {'profile','same','random'}:raise UserError('任务类型无效')
-  required=4 if kind=='profile' else 2
+  if kind not in {'profile','face','same','random'}:raise UserError('任务类型无效')
+  required=4 if kind=='profile' else 1 if kind=='face' else 2
   if credit_balance(owner)['remaining']<required:raise UserError('积分不足：本次需要 %d 积分，今日剩余 %d 积分'%(required,credit_balance(owner)['remaining']))
   ref=None
-  if kind!='profile':
+  if kind not in {'profile','face'}:
    if not p.get('summary') or len(p.get('views',{}))<4:raise UserError('请先完成形象库整理，再生成个人照片')
    candidates=q.get('referenceIds',[]) if kind=='random' else [q.get('referenceId')]
    if not isinstance(candidates,list) or len(candidates)>500:raise UserError('参考图片无效')
@@ -285,6 +306,8 @@ def create_job(owner,q,catalog):
   if kind=='profile':
    j['size']='1024x1536'
    j['slots']=[{'key':key,'label':label,'status':'queued'} for key,label in [('front','正面全身'),('side','侧面全身'),('back','背面全身'),('face','面部特写')]]
+  elif kind=='face':
+   j['size']='1024x1024';j['slots']=[{'key':'face','label':'面部特写','status':'queued'}]
   else:
    j['photos']=(p['photos'][:4]+[p['views']['face'],p['views']['front']])[:6]
    j['referenceAsset']=store_asset(owner,remote_image(ref['image']));j['reference']={'id':ref['id'],'title':ref['title'],'asset':j['referenceAsset']}
