@@ -181,10 +181,29 @@ def generated_url(r):
 
 FACE_FRAMING='这是一张面部特写，EXTREME CLOSE-UP HEADSHOT，不是全身照、半身照或证件全身照。镜头只取完整头部、少量颈部与肩膀上缘；头顶到下巴占画面高度约70%至85%，脸部占画面宽度至少50%。人物正面直视镜头，清晰呈现眼睛、鼻子、嘴唇、皮肤细节。完整保留头发、耳朵和下巴，头顶留白不超过8%。画面下缘在锁骨附近截止，不得出现胸腹、腰、手、裤子、腿或鞋。背景只留少量干净浅灰区域。禁止远景、全身、宽松取景和大面积背景。'
 
+def accessory_rules(j,items):
+ policy=j.get('accessoryPolicy') or {}
+ excluded=[x for x in policy.get('excluded',[]) if isinstance(x,str)][:12]
+ result=[x[:300] for x in items if isinstance(x,str) and not any(no in x for no in excluded)][:12]
+ for item in policy.get('required',[]):
+  if isinstance(item,str) and not any(item in x for x in result) and not any(no in item for no in excluded):result.append(item+'（严格参照上传的实物照片）')
+ return result
+
+def accessory_prompt(j,items):
+ items=accessory_rules(j,items)
+ text='。配饰必须严格使用以下清单和上传的实物参考：'+json.dumps(items,ensure_ascii=False)+'。仅当清单包含对应配饰时：项链按实物保持链条颜色、吊坠形状与长度，戴在颈部；手串按实物保持珠子颜色、排列与材质，戴在手腕，不得替换成手表。身体和取景允许时清楚呈现，不要省略；面部特写不可为展示手串而拉远镜头。不得复制场景人物或旧形象参考中的额外饰品，不得凭空添加清单外的配饰。'
+ for item in set((j.get('accessoryPolicy') or {}).get('excluded',[]))|{x for x in ('手表','戒指') if not any(x in a for a in items)}:text+='禁止佩戴'+item+'。'
+ return text
+
+def accessories_match(data,j):
+ policy=j.get('accessoryPolicy') or {}
+ result=reason('检查生成图是否遵守配饰要求。要求佩戴：'+json.dumps(policy.get('required',[]),ensure_ascii=False)+'；绝对禁止：'+json.dumps(policy.get('excluded',[]),ensure_ascii=False)+'。返回 JSON：matches（布尔值），missingVisibleAccessories（数组，仅身体相应区域清楚可见却缺失的配饰；颈部可见应有项链，手腕可见应有手串；出画或遮挡不算缺失），forbiddenDetected（图中出现的禁止配饰数组）。手串不能误认成手表，不能因为背景风格而放宽要求。', ['data:image/jpeg;base64,'+base64.b64encode(data).decode()])
+ return result.get('matches') is True and result.get('missingVisibleAccessories')==[] and result.get('forbiddenDetected')==[]
+
 def portrait_input(j,slot):
  if slot['key']=='face':
   summary=j.get('summary',{})
-  return ('为身份参考中同一位成年人拍摄独立面部特写。严格保持本人的脸型五官、发型、年龄感与皮肤特征，不美化换脸。原片只提供人物身份，不沿用原片的身体姿势、远近或全身构图。自然柔和光线，不要文字、水印或拼图。'+FACE_FRAMING+'。本人面部特征参考：'+summary.get('description','')+'。实际穿戴配饰：'+json.dumps(summary.get('accessories',[]),ensure_ascii=False),'1024x1024')
+  return ('为身份参考中同一位成年人拍摄独立面部特写。严格保持本人的脸型五官、发型、年龄感与皮肤特征，不美化换脸。原片只提供人物身份，不沿用原片的身体姿势、远近或全身构图。自然柔和光线，不要文字、水印或拼图。'+FACE_FRAMING+'。本人面部特征参考：'+summary.get('description','')+'。实际穿戴配饰：'+json.dumps(summary.get('accessories',[]),ensure_ascii=False)+accessory_prompt(j,summary.get('accessories',[])),'1024x1024')
  return j['prompt'],j['size']
 
 def face_is_closeup(data):
@@ -195,24 +214,32 @@ def face_is_closeup(data):
 def execute(jid):
  j=load_job(jid)
  try:
-  p=read_profile(j['owner']);images=[data_uri(j['owner'],u) for u in j['photos'][:6]]
+  p=read_profile(j['owner']);images=[data_uri(j['owner'],u) for u in j['photos'][:12]]
   if not j.get('prompt'):
    j['stage']='分析形象' if j['kind'] in {'profile','face','view'} else '分析参考照片';save_job(j)
    if j['kind'] in {'profile','face','view'}:
-    summary=reason('分析这些同一位成年人的照片，只写可见外观，不猜姓名、国籍、健康。返回 JSON：description（脸型、五官、发型、体态的具体中文描述），accessories（本人实际穿戴的配饰字符串数组，只包括眼镜、耳饰、项链、手表、戒指等，不包括杯子、手机、家具或背景道具；没有则返回空数组；只有单张照片时不要断言经常佩戴），missingViews（未见的正面、侧面、背面视角数组）。无法看见的细节写不确定。',images)
+    summary=reason('分析这些同一位成年人的照片，只写可见外观，不猜姓名、国籍、健康。返回 JSON：description（脸型、五官、发型、体态的具体中文描述），accessories（用户实际上传的配饰详细描述数组：包括人物佩戴的，以及单独拍摄的项链吊坠、手串等实物照片；逐项描述颜色、材质、形状、佩戴位置。单独拍的配饰也视作用户明确要求佩戴，不要忽略。不得臆造没有实物证据的手表、戒指。不包括杯子、手机、家具或背景道具；没有则返回空数组），accessoryImageIndices（只拍配饰实物、没有人脸的参考图的从0开始索引数组；有人脸的照片不放入该数组），missingViews（未见的正面、侧面、背面视角数组）。无法看见的细节写不确定。',images)
     if not isinstance(summary.get('description'),str) or not isinstance(summary.get('accessories'),list):raise UserError('形象分析字段不完整，请重试')
     summary['description']=summary['description'][:3000]
     summary['missingViews']=[x[:40] for x in summary.get('missingViews',[]) if isinstance(x,str)][:4] if isinstance(summary.get('missingViews',[]),list) else []
-    summary['accessories']=[x[:80] for x in summary['accessories'][:12] if isinstance(x,str)]
+    summary['accessories']=accessory_rules(j,summary['accessories'])
     j['summary']=summary
-    j['prompt']='生成这同一个成年人的独立形象参考照片，严格保持本人脸型五官、发型、体态，不美化换脸。原片只提供身份，不沿用原片的半身、坐姿或裁切构图。统一穿纯白圆领T恤、深灰直筒长裤、简洁白色休闲鞋；没有外套，无裸露，正侧背和特写使用相同衣服与发型。中性背景和自然光。只输出单张照片，不要拼图、文字。外观：'+summary['description']+'。常见配饰：'+json.dumps(summary['accessories'],ensure_ascii=False)
+    j['prompt']='生成这同一个成年人的独立形象参考照片，严格保持本人脸型五官、发型、体态，不美化换脸。原片只提供身份，不沿用原片的半身、坐姿或裁切构图。统一穿纯白圆领T恤、深灰直筒长裤、简洁白色休闲鞋；没有外套，无裸露，正侧背和特写使用相同衣服与发型。中性背景和自然光。只输出单张照片，不要拼图、文字。外观：'+summary['description']+'。常见配饰：'+json.dumps(summary['accessories'],ensure_ascii=False)+accessory_prompt(j,summary['accessories'])
    else:
+    if j.get('accessorySourcePhotos') and 'accessoryRefs' not in j:
+     sources=j['accessorySourcePhotos'][:12]
+     details=reason('仅检查上传原片中的配饰，不重新分析人物身份。返回 JSON：accessories（已佩戴和单独拍摄的项链吊坠、手串等实物详细描述数组，含颜色、形状、材质；没有证据的手表戒指不得添加），accessoryImageIndices（从0开始，只选择没有人脸的配饰实物照片索引；含人脸照片不可选）。单独拍的项链与手串是用户要求佩戴的，不要遗漏。', [data_uri(j['owner'],u) for u in sources])
+     indices=details.get('accessoryImageIndices',[])
+     j['accessoryRefs']=[sources[i] for i in indices if type(i) is int and 0<=i<len(sources)][:6] if isinstance(indices,list) else []
+     items=details.get('accessories')
+     j['accessories']=accessory_rules(j,items if isinstance(items,list) else j.get('identitySummary',{}).get('accessories',[]));save_job(j)
     ref='data:image/jpeg;base64,'+base64.b64encode(asset(j['owner'],j['referenceAsset'])).decode()
     scene=reason('只分析最后一张场景参考的摄影风格，不描述或复制其中人物的脸。返回 JSON：style（详细中文描述场景、自然姿态、构图、光线、色彩、镜头质感）。前面的图片是用户本人，只用于保持身份。',images+[ref])
     if not isinstance(scene.get('style'),str):raise UserError('场景分析字段不完整，请重试')
-    j['prompt']='为前几张身份参考中的同一个成年人拍摄一张自然生活感摄影。身份参考依次为用户选定形象方案的面部特写、正面、侧面、背面；以第一张面部特写锁定脸型五官、发型和年龄感，以其余三张保持同一人的体态。严格保持所选方案，不重新解释或混用其他形象。最后一张仅作场景、光影、构图和姿态参考，绝不能复制最后一张里的人脸。完整日常衣着、无裸露、无内衣泳装。禁止文字、水印、拼图。摄影要求：'+scene['style']+'。用户常见配饰：'+json.dumps(j.get('identitySummary',p.get('summary') or {}).get('accessories',[]),ensure_ascii=False)
+    j['prompt']='为前几张身份参考中的同一个成年人拍摄一张自然生活感摄影。身份参考依次为用户选定形象方案的面部特写、正面、侧面、背面；以第一张面部特写锁定脸型五官、发型和年龄感，以其余三张保持同一人的体态。严格保持所选方案，不重新解释或混用其他形象。最后一张仅作场景、光影、构图和姿态参考，绝不能复制最后一张里的人脸。完整日常衣着、无裸露、无内衣泳装。禁止文字、水印、拼图。摄影要求：'+scene['style']+'。用户常见配饰：'+json.dumps(j.get('accessories',j.get('identitySummary',p.get('summary') or {}).get('accessories',[])),ensure_ascii=False)+accessory_prompt(j,j.get('accessories',j.get('identitySummary',p.get('summary') or {}).get('accessories',[])))+'第5张至场景参考之前的附加图片仅作配饰实物参考，不改变前四张选定身份。'
    save_job(j)
-  if j['kind'] not in {'profile','face','view'}:images.append(data_uri(j['owner'],j['referenceAsset']))
+  if j['kind'] not in {'profile','face','view'}:
+   images.extend(data_uri(j['owner'],u) for u in j.get('accessoryRefs',[]));images.append(data_uri(j['owner'],j['referenceAsset']))
   j['stage']='生成形象参考' if j['kind'] in {'profile','face','view'} else '生成个人照片';j['status']='running';save_job(j)
   # Submit independently and persist every upstream id before doing any further work.
   for i,s in enumerate(j['slots']):
@@ -245,6 +272,13 @@ def execute(jid):
        if not valid:
         s['status']='failed';s['providerFailed']=True;s['error']='这张图不是合格的面部特写，已退回该张积分，请重试';save_job(j);continue
        s['framingChecked']=True
+      if j.get('accessoryPolicy'):
+       s['phase']='checking_accessories';save_job(j)
+       try:valid=accessories_match(data,j)
+       except Exception:s['status']='failed';s['providerFailed']=True;s['error']='配饰检查暂不可用，已退回该张积分';save_job(j);continue
+       if not valid:
+        s['status']='failed';s['providerFailed']=True;s['error']='配饰与要求不符，已退回该张积分；原有图片保留，可重新生成';save_job(j);continue
+       s['accessoriesChecked']=True
       s['asset']=store_asset(j['owner'],data);s['phase']='done';s['status']='succeeded';s.pop('error',None)
      elif state in {'failed','error','cancelled','canceled'}:s['status']='failed';s['providerFailed']=True;s['error']='GRsai 生成失败，请重试'
      else:s['progress']=d.get('progress',0)
@@ -313,7 +347,7 @@ def create_job(owner,q,catalog):
    candidate_ids={x for x in candidates if isinstance(x,str)};available=[r for r in catalog if r['id'] in candidate_ids]
    if not available:raise UserError('当前照片参考已过期，请刷新后重试')
    ref=secrets.choice(available)
-  jid=secrets.token_hex(16);j={'id':jid,'owner':owner,'requestKey':key,'kind':kind,'revision':p.get('revision'),'photos':p['photos'][:], 'status':'queued','stage':'排队中','created':time.time(),'slots':[],'size':'864x1152'}
+  jid=secrets.token_hex(16);j={'id':jid,'owner':owner,'requestKey':key,'kind':kind,'revision':p.get('revision'),'photos':p['photos'][:],'accessoryPolicy':p.get('accessoryPolicy',{}), 'status':'queued','stage':'排队中','created':time.time(),'slots':[],'size':'864x1152'}
   if kind=='profile':
    j['size']='1024x1536'
    j['slots']=[{'key':key,'label':label,'status':'queued'} for key,label in [('front','正面全身'),('side','侧面全身'),('back','背面全身'),('face','面部特写')]]
@@ -324,6 +358,7 @@ def create_job(owner,q,catalog):
    j['slots']=[{'key':q['view'],'label':names[q['view']],'status':'queued'}]
   else:
    j['identityViews']={k:p['views'][k] for k in ('face','front','side','back')}
+   j['accessorySourcePhotos']=p['photos'][:]
    j['identityScheme']=p.get('selectedScheme');j['identitySummary']=p.get('summary') or {}
    j['photos']=list(j['identityViews'].values())
    j['referenceAsset']=store_asset(owner,remote_image(ref['image']));j['reference']={'id':ref['id'],'title':ref['title'],'asset':j['referenceAsset']}
@@ -341,7 +376,7 @@ def select_scheme(owner,jid):
   if j['status'] not in TERMINAL:raise UserError('方案仍在生成中')
   views=j.get('schemeViews') or {x['key']:x['asset'] for x in j['slots'] if x.get('asset')}
   if len(views)!=4 or not j.get('summary'):raise UserError('请选择已完成四个视图的方案')
-  p=read_profile(owner);p['views']=views;p['summary']=j['summary'];p['selectedScheme']=j['id'];save_profile(owner,p)
+  p=read_profile(owner);p['views']=views;p['summary']=dict(j['summary']);p['summary']['accessories']=accessory_rules({'accessoryPolicy':p.get('accessoryPolicy',{})},p['summary'].get('accessories',[]));p['selectedScheme']=j['id'];save_profile(owner,p)
   return p
 
 def remove_photo(owner,url):
@@ -353,14 +388,14 @@ def remove_photo(owner,url):
   save_profile(owner,profile)
   with db() as c:
    history=[json.loads(r[0]) for r in c.execute('SELECT data FROM jobs WHERE owner=?',(owner,)).fetchall()]
-   referenced=any(url in job.get('photos',[]) or job.get('referenceAsset')==url for job in history) or url in profile.get('views',{}).values()
+   referenced=any(url in job.get('photos',[]) or url in job.get('accessorySourcePhotos',[]) or url in job.get('accessoryRefs',[]) or job.get('referenceAsset')==url for job in history) or url in profile.get('views',{}).values()
    if not referenced:
     row=c.execute('SELECT path FROM assets WHERE id=? AND owner=?',(url.rsplit('/',1)[-1],owner)).fetchone()
     c.execute('DELETE FROM assets WHERE id=? AND owner=?',(url.rsplit('/',1)[-1],owner))
     if row:Path(row[0]).unlink(missing_ok=True)
   return profile
 
-def public_job(j):return {k:v for k,v in j.items() if k not in {'owner','photos','prompt','revision','referenceAsset','requestKey'}}
+def public_job(j):return {k:v for k,v in j.items() if k not in {'owner','photos','prompt','revision','referenceAsset','requestKey','accessorySourcePhotos'}}
 
 def handle(h,catalog):
  path=urlparse(h.path).path

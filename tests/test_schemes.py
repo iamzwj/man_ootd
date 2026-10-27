@@ -33,3 +33,15 @@ class SchemeTests(PersonalTests):
   self.ready();before=p.credit_balance(self.owner)['remaining']
   with self.assertRaises(p.UserError):self.make('same',referenceId='ref',schemeId='stale-scheme')
   self.assertEqual(p.credit_balance(self.owner)['remaining'],before)
+ def test_seventh_upload_and_product_references_are_used(self):
+  self.ready();profile=p.read_profile(self.owner);profile['photos']=[p.store_asset(self.owner,self.img) for _ in range(7)];profile['accessoryPolicy']={'required':['项链','手串'],'excluded':['手表','戒指']};p.save_profile(self.owner,profile)
+  j=self.make('same',referenceId='ref');self.assertEqual(len(j['accessorySourcePhotos']),7)
+  details={'accessories':['银色方形吊坠项链','黑色珠子手串','手表','戒指'],'accessoryImageIndices':[5,6]}
+  with patch.object(p,'reason',side_effect=[details,{'style':'咖啡馆自然光'}]) as reasoning,patch.object(p,'submit_image',side_effect=['a','b']) as submit,patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/out.jpg'}]}),patch.object(p,'remote_image',return_value=self.img),patch.object(p,'accessories_match',return_value=True):p.execute(j['id'])
+  done=p.load_job(j['id']);self.assertEqual(done['status'],'succeeded');self.assertEqual(len(reasoning.call_args_list[0].args[1]),7);self.assertEqual(done['accessoryRefs'],profile['photos'][5:7])
+  images=submit.call_args.args[1];self.assertEqual(len(images),7);self.assertEqual(images[4:6],[p.data_uri(self.owner,u) for u in profile['photos'][5:7]])
+  self.assertEqual(done['accessories'],details['accessories'][:2]);self.assertIn('禁止佩戴手表',submit.call_args.args[0]);self.assertIn('禁止佩戴戒指',submit.call_args.args[0])
+ def test_wrong_accessories_refund_without_overwriting_views(self):
+  self.ready();profile=p.read_profile(self.owner);profile['accessoryPolicy']={'required':['项链','手串'],'excluded':['手表','戒指']};p.save_profile(self.owner,profile);j=self.make('view',view='front')
+  with patch.object(p,'reason',return_value={'description':'短发','accessories':['项链','手串']}),patch.object(p,'submit_image',return_value='one'),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/out.jpg'}]}),patch.object(p,'remote_image',return_value=self.img),patch.object(p,'accessories_match',return_value=False):p.execute(j['id'])
+  self.assertEqual(p.load_job(j['id'])['status'],'failed');self.assertEqual(p.read_profile(self.owner),profile);self.assertEqual(p.credit_balance(self.owner)['remaining'],10)
