@@ -181,7 +181,7 @@ def generated_url(r):
 
 FACE_FRAMING='这是一张面部特写，EXTREME CLOSE-UP HEADSHOT，不是全身照、半身照或证件全身照。镜头只取完整头部、少量颈部与肩膀上缘；头顶到下巴占画面高度约70%至85%，脸部占画面宽度至少50%。人物正面直视镜头，清晰呈现眼睛、鼻子、嘴唇、皮肤细节。完整保留头发、耳朵和下巴，头顶留白不超过8%。画面下缘在锁骨附近截止，不得出现胸腹、腰、手、裤子、腿或鞋。背景只留少量干净浅灰区域。禁止远景、全身、宽松取景和大面积背景。'
 
-NATURAL_CAPTURE='保持选定面部特写的眼睛大小与间距、眉形、鼻梁鼻翼、唇形、脸宽、下颌轮廓和年龄感，不重新设计长相。只调整照片成像方式：像普通相机在现场拍出的自然照片，沿用参考场景的机位、构图、明暗关系、衣着与姿态。保留本人自然肤色及皮肤微小明暗过渡，柔和收敛高光和锐化，不拉高皮肤局部对比，不做美颜磨皮。保持面部细节适度清晰，避免每一处边缘都同样锐利；衣物和背景仍有真实细节。降低HDR和人像精修感，但不添加可见颗粒、模糊、噪点或任何五官改动。'
+NATURAL_CAPTURE='保持真实正面原照的眼睛大小与间距、眉形、鼻梁鼻翼、唇形、脸宽、下颌轮廓和年龄感，不重新设计长相。只调整照片成像方式：像普通相机在现场拍出的自然照片，沿用参考场景的机位、构图、明暗关系、衣着与姿态。保留本人自然肤色及皮肤微小明暗过渡，柔和收敛高光和锐化，不拉高皮肤局部对比，不做美颜磨皮。保持面部细节适度清晰，避免每一处边缘都同样锐利；衣物和背景仍有真实细节。降低HDR和人像精修感，但不添加可见颗粒、模糊、噪点或任何五官改动。'
 
 def accessory_rules(j,items):
  policy=j.get('accessoryPolicy') or {}
@@ -236,9 +236,11 @@ def execute(jid):
      items=details.get('accessories')
      j['accessories']=accessory_rules(j,items if isinstance(items,list) else j.get('identitySummary',{}).get('accessories',[]));save_job(j)
     ref='data:image/jpeg;base64,'+base64.b64encode(asset(j['owner'],j['referenceAsset'])).decode()
-    scene=reason('只分析最后一张场景参考的摄影风格，不描述或复制其中人物的脸。返回 JSON：style（详细中文描述场景、自然姿态、构图、光线、色彩、镜头质感）。前面的图片是用户本人，只用于保持身份。',images+[ref])
+    scene=reason('只分析最后一张场景参考的摄影风格，不描述或复制其中人物的脸。返回 JSON：style（详细中文描述场景、衣着、自然姿态、构图、光线、色彩、镜头质感）。前面的图片是用户本人，只用于保持身份。',images+[ref])
     if not isinstance(scene.get('style'),str):raise UserError('场景分析字段不完整，请重试')
-    j['prompt']='为前几张身份参考中的同一个成年人拍摄一张自然生活感摄影。身份参考依次为用户选定形象方案的面部特写、正面、侧面、背面；以第一张面部特写锁定脸型五官、发型和年龄感，以其余三张保持同一人的体态。严格保持所选方案，不重新解释或混用其他形象。最后一张仅作场景、光影、构图和姿态参考，绝不能复制最后一张里的人脸。完整日常衣着、无裸露、无内衣泳装。禁止文字、水印、拼图。摄影要求：'+scene['style']+'。用户常见配饰：'+json.dumps(j.get('accessories',j.get('identitySummary',p.get('summary') or {}).get('accessories',[])),ensure_ascii=False)+accessory_prompt(j,j.get('accessories',j.get('identitySummary',p.get('summary') or {}).get('accessories',[])))+'第5张至场景参考之前的附加图片仅作配饰实物参考，不改变前四张选定身份。'+NATURAL_CAPTURE
+    j['prompt']='为前几张身份参考中的同一个成年人拍摄一张自然生活感摄影。第一张是用户真实正面原照，是面部身份的最高优先级依据：严格保持其眼型和自然眼裂大小、眼距、眉形眉毛浓度、鼻形、唇形厚度与宽度、面颊饱满程度、脸宽、下巴形状和五官比例。不放大或画圆眼睛，不加粗眉毛或嘴唇，不拉长下半脸、不削瘦面颊或收尖下巴、不变年轻、不美化换脸。第二张是用户选定方案的外观辅助图，仅参考发型、眼镜和体态；衣着遵循最后一张场景参考，绝不能覆盖第一张的眼睛、鼻子、嘴唇和脸型；两张冲突时真实正面原照优先。人物朝向、机位与动作遵循最后一张场景参考，不固定为正面或低机位。最后一张仅作场景、光影、构图和姿态参考，绝不能复制最后一张里的人脸。完整日常衣着、无裸露、无内衣泳装。禁止文字、水印、拼图。摄影要求：'+scene['style']+'。用户常见配饰：'+json.dumps(j.get('accessories',j.get('identitySummary',p.get('summary') or {}).get('accessories',[])),ensure_ascii=False)+accessory_prompt(j,j.get('accessories',j.get('identitySummary',p.get('summary') or {}).get('accessories',[])))+'第3张至场景参考之前的附加图片仅作配饰实物参考，不改变真实正面原照中的身份。'+NATURAL_CAPTURE
+   if j['kind'] in {'same','random'} and j.get('identityMethod')!='real-front-v1':
+    j['prompt']='根据已保存的人物参考保持同一人的五官长相；最后一张只作场景参考。'+scene['style']+accessory_prompt(j,j.get('accessories',[]))+NATURAL_CAPTURE.replace('真实正面原照','已保存人物参考')
    save_job(j)
   if j['kind'] not in {'profile','face','view'}:
    images.extend(data_uri(j['owner'],u) for u in j.get('accessoryRefs',[]));images.append(data_uri(j['owner'],j['referenceAsset']))
@@ -362,7 +364,9 @@ def create_job(owner,q,catalog):
    j['identityViews']={k:p['views'][k] for k in ('face','front','side','back')}
    j['accessorySourcePhotos']=p['photos'][:]
    j['identityScheme']=p.get('selectedScheme');j['identitySummary']=p.get('summary') or {}
-   j['photos']=list(j['identityViews'].values())
+   j['realIdentityPhoto']=p.get('identityPhoto') if p.get('identityPhoto') in p['photos'] else p['photos'][0]
+   j['identityMethod']='real-front-v1'
+   j['photos']=[j['realIdentityPhoto'],p['views']['front']]
    j['referenceAsset']=store_asset(owner,remote_image(ref['image']));j['reference']={'id':ref['id'],'title':ref['title'],'asset':j['referenceAsset']}
    if ref.get('width',0)>ref.get('height',1):j['size']='1152x864'
    j['slots']=[{'key':str(i),'label':'照片 '+str(i),'status':'queued'} for i in (1,2)]
@@ -370,6 +374,12 @@ def create_job(owner,q,catalog):
    c.execute('BEGIN IMMEDIATE');reserve_credits(c,j,j['slots'])
    c.execute('INSERT INTO jobs VALUES(?,?,?,?,?)',(jid,owner,key,json.dumps(j,ensure_ascii=False),j['created']))
   launch(jid);return j
+
+def select_identity_photo(owner,url):
+ with GUARD:
+  p=read_profile(owner)
+  if not isinstance(url,str) or url not in p.get('photos',[]):raise UserError('请选择已上传的本人正面原照')
+  p['identityPhoto']=url;save_profile(owner,p);return p
 
 def select_scheme(owner,jid):
  with GUARD:
@@ -386,6 +396,7 @@ def remove_photo(owner,url):
   profile=read_profile(owner)
   if not isinstance(url,str) or url not in profile['photos']:raise UserError('这张照片不在当前形象库中')
   profile['photos']=[photo for photo in profile['photos'] if photo!=url]
+  if profile.get('identityPhoto')==url:profile['identityPhoto']=profile['photos'][0] if profile['photos'] else None
   # Existing generated images and submitted reference snapshots are unaffected.
   save_profile(owner,profile)
   with db() as c:
@@ -448,6 +459,7 @@ def handle(h,catalog):
     try:decoded.append(clean_image(base64.b64decode(u.split(',',1)[1],validate=True)))
     except ValueError:raise UserError('图片编码无效')
    p['photos'] += [store_asset(owner,d) for d in decoded];p['views']={};p['summary']=None;p['revision']=secrets.token_hex(8);save_profile(owner,p);send(200,{'profile':p})
+  elif path=='/api/personal/photo/identity':send(200,{'profile':select_identity_photo(owner,q.get('photo'))})
   elif path=='/api/personal/scheme/select':send(200,{'profile':select_scheme(owner,q.get('id',''))})
   elif path=='/api/personal/photo/remove':send(200,{'profile':remove_photo(owner,q.get('photo'))})
   elif path=='/api/personal/generate':send(202,{'job':public_job(create_job(owner,q,catalog()))})

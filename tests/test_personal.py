@@ -26,7 +26,7 @@ class PersonalTests(unittest.TestCase):
  def test_exact_two_outputs_and_identity_prompt(self):
   self.ready();j=self.make('same',referenceId='ref');self.assertEqual(len(j['slots']),2);self.assertNotEqual(j['status'],'succeeded')
   with patch.object(p,'reason',return_value={'style':'咖啡馆侧光'}),patch.object(p,'submit_image',side_effect=['first','second']) as submit,patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/result.jpg'}]}),patch.object(p,'remote_image',return_value=self.img):p.execute(j['id'])
-  done=p.load_job(j['id']);self.assertEqual(done['status'],'succeeded');self.assertTrue(all(s.get('asset') for s in done['slots']));self.assertEqual(submit.call_count,2);self.assertIn('绝不能复制最后一张里的人脸',submit.call_args.args[0]);self.assertEqual(len(submit.call_args.args[1]),5)
+  done=p.load_job(j['id']);self.assertEqual(done['status'],'succeeded');self.assertTrue(all(s.get('asset') for s in done['slots']));self.assertEqual(submit.call_count,2);self.assertIn('绝不能复制最后一张里的人脸',submit.call_args.args[0]);self.assertEqual(len(submit.call_args.args[1]),3)
  def test_partial_success_kept(self):
   self.ready();j=self.make('same',referenceId='ref')
   with patch.object(p,'reason',return_value={'style':'自然光'}),patch.object(p,'submit_image',side_effect=['first',p.UserError('模型维护')]),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/out.jpg'}]}),patch.object(p,'remote_image',return_value=self.img):p.execute(j['id'])
