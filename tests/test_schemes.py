@@ -45,3 +45,8 @@ class SchemeTests(PersonalTests):
   self.ready();profile=p.read_profile(self.owner);profile['accessoryPolicy']={'required':['项链','手串'],'excluded':['手表','戒指']};p.save_profile(self.owner,profile);j=self.make('view',view='front')
   with patch.object(p,'reason',return_value={'description':'短发','accessories':['项链','手串']}),patch.object(p,'submit_image',return_value='one'),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/out.jpg'}]}),patch.object(p,'remote_image',return_value=self.img),patch.object(p,'accessories_match',return_value=False):p.execute(j['id'])
   self.assertEqual(p.load_job(j['id'])['status'],'failed');self.assertEqual(p.read_profile(self.owner),profile);self.assertEqual(p.credit_balance(self.owner)['remaining'],10)
+ def test_no_necklace_policy_overrides_old_scheme_and_uploaded_accessories(self):
+  job={'accessoryPolicy':{'required':['手串'],'excluded':['项链','手表','戒指']}}
+  items=p.accessory_rules(job,['银色项链','黑色珠子手串','手表','戒指'])
+  self.assertEqual(items,['黑色珠子手串'])
+  prompt=p.accessory_prompt(job,items);self.assertIn('禁止佩戴项链',prompt);self.assertIn('禁止佩戴手表',prompt);self.assertIn('禁止佩戴戒指',prompt)

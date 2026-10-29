@@ -181,6 +181,8 @@ def generated_url(r):
 
 FACE_FRAMING='这是一张面部特写，EXTREME CLOSE-UP HEADSHOT，不是全身照、半身照或证件全身照。镜头只取完整头部、少量颈部与肩膀上缘；头顶到下巴占画面高度约70%至85%，脸部占画面宽度至少50%。人物正面直视镜头，清晰呈现眼睛、鼻子、嘴唇、皮肤细节。完整保留头发、耳朵和下巴，头顶留白不超过8%。画面下缘在锁骨附近截止，不得出现胸腹、腰、手、裤子、腿或鞋。背景只留少量干净浅灰区域。禁止远景、全身、宽松取景和大面积背景。'
 
+NATURAL_CAPTURE='保持选定面部特写的眼睛大小与间距、眉形、鼻梁鼻翼、唇形、脸宽、下颌轮廓和年龄感，不重新设计长相。只调整照片成像方式：像普通相机在现场拍出的自然照片，沿用参考场景的机位、构图、明暗关系、衣着与姿态。保留本人自然肤色及皮肤微小明暗过渡，柔和收敛高光和锐化，不拉高皮肤局部对比，不做美颜磨皮。保持面部细节适度清晰，避免每一处边缘都同样锐利；衣物和背景仍有真实细节。降低HDR和人像精修感，但不添加可见颗粒、模糊、噪点或任何五官改动。'
+
 def accessory_rules(j,items):
  policy=j.get('accessoryPolicy') or {}
  excluded=[x for x in policy.get('excluded',[]) if isinstance(x,str)][:12]
@@ -228,7 +230,7 @@ def execute(jid):
    else:
     if j.get('accessorySourcePhotos') and 'accessoryRefs' not in j:
      sources=j['accessorySourcePhotos'][:12]
-     details=reason('仅检查上传原片中的配饰，不重新分析人物身份。返回 JSON：accessories（已佩戴和单独拍摄的项链吊坠、手串等实物详细描述数组，含颜色、形状、材质；没有证据的手表戒指不得添加），accessoryImageIndices（从0开始，只选择没有人脸的配饰实物照片索引；含人脸照片不可选）。单独拍的项链与手串是用户要求佩戴的，不要遗漏。', [data_uri(j['owner'],u) for u in sources])
+     details=reason('仅检查上传原片中的配饰，不重新分析人物身份。返回 JSON：accessories（已佩戴和单独拍摄的项链吊坠、手串等实物详细描述数组，含颜色、形状、材质；没有证据的手表戒指不得添加），accessoryImageIndices（从0开始，只选择没有人脸的配饰实物照片索引；含人脸照片不可选）。单独拍摄的配饰也需识别，但必须遵守用户禁戴清单；accessories和accessoryImageIndices都不得包含禁戴物品，仅选择允许佩戴的配饰实物参考；若照片包含禁戴饰品，不选择该照片。用户禁戴清单：'+json.dumps((j.get('accessoryPolicy') or {}).get('excluded',[]),ensure_ascii=False), [data_uri(j['owner'],u) for u in sources])
      indices=details.get('accessoryImageIndices',[])
      j['accessoryRefs']=[sources[i] for i in indices if type(i) is int and 0<=i<len(sources)][:6] if isinstance(indices,list) else []
      items=details.get('accessories')
@@ -236,7 +238,7 @@ def execute(jid):
     ref='data:image/jpeg;base64,'+base64.b64encode(asset(j['owner'],j['referenceAsset'])).decode()
     scene=reason('只分析最后一张场景参考的摄影风格，不描述或复制其中人物的脸。返回 JSON：style（详细中文描述场景、自然姿态、构图、光线、色彩、镜头质感）。前面的图片是用户本人，只用于保持身份。',images+[ref])
     if not isinstance(scene.get('style'),str):raise UserError('场景分析字段不完整，请重试')
-    j['prompt']='为前几张身份参考中的同一个成年人拍摄一张自然生活感摄影。身份参考依次为用户选定形象方案的面部特写、正面、侧面、背面；以第一张面部特写锁定脸型五官、发型和年龄感，以其余三张保持同一人的体态。严格保持所选方案，不重新解释或混用其他形象。最后一张仅作场景、光影、构图和姿态参考，绝不能复制最后一张里的人脸。完整日常衣着、无裸露、无内衣泳装。禁止文字、水印、拼图。摄影要求：'+scene['style']+'。用户常见配饰：'+json.dumps(j.get('accessories',j.get('identitySummary',p.get('summary') or {}).get('accessories',[])),ensure_ascii=False)+accessory_prompt(j,j.get('accessories',j.get('identitySummary',p.get('summary') or {}).get('accessories',[])))+'第5张至场景参考之前的附加图片仅作配饰实物参考，不改变前四张选定身份。'
+    j['prompt']='为前几张身份参考中的同一个成年人拍摄一张自然生活感摄影。身份参考依次为用户选定形象方案的面部特写、正面、侧面、背面；以第一张面部特写锁定脸型五官、发型和年龄感，以其余三张保持同一人的体态。严格保持所选方案，不重新解释或混用其他形象。最后一张仅作场景、光影、构图和姿态参考，绝不能复制最后一张里的人脸。完整日常衣着、无裸露、无内衣泳装。禁止文字、水印、拼图。摄影要求：'+scene['style']+'。用户常见配饰：'+json.dumps(j.get('accessories',j.get('identitySummary',p.get('summary') or {}).get('accessories',[])),ensure_ascii=False)+accessory_prompt(j,j.get('accessories',j.get('identitySummary',p.get('summary') or {}).get('accessories',[])))+'第5张至场景参考之前的附加图片仅作配饰实物参考，不改变前四张选定身份。'+NATURAL_CAPTURE
    save_job(j)
   if j['kind'] not in {'profile','face','view'}:
    images.extend(data_uri(j['owner'],u) for u in j.get('accessoryRefs',[]));images.append(data_uri(j['owner'],j['referenceAsset']))
