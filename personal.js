@@ -2,6 +2,25 @@ const $=s=>document.querySelector(s);
 let state={authenticated:false,profile:{photos:[],views:{}},jobs:[]},pendingReference=null,pendingAction=null,busy=false,polling=false,activeTab='profile',authBusy=false,resendUntil=0;
 const labels={front:'正面',side:'侧面',back:'背面',face:'面部特写'};
 const terminal=new Set(['succeeded','failed','partial','uncertain']);
+let selectingWorks=false,deletingWorks=false,selectedWorks=new Set();
+const workKey=(j,s)=>JSON.stringify([j.id,s.key]);
+function renderWorkSelection(){
+ const count=selectedWorks.size;
+ $('#worksSelect').hidden=!state.authenticated||!state.jobs.some(j=>['same','random'].includes(j.kind)&&j.slots.some(s=>s.asset));
+ $('#worksSelect').textContent=selectingWorks?'取消选择':'选择删除';$('#worksSelect').disabled=deletingWorks;
+ $('#worksSelect').setAttribute('aria-pressed',String(selectingWorks));
+ $('#worksSelection').hidden=!selectingWorks;$('#worksSelectionCount').textContent='已选择 '+count+' 张';
+ $('#worksDelete').textContent=deletingWorks?'正在删除…':'删除（'+count+'）';$('#worksDelete').disabled=!count||deletingWorks;
+ for(const button of document.querySelectorAll('.work-select')){const chosen=selectedWorks.has(button.dataset.key);button.setAttribute('aria-pressed',String(chosen));button.setAttribute('aria-label',(chosen?'取消选择':'选择')+'作品');button.classList.toggle('selected',chosen);button.textContent=chosen?'✓':'';button.disabled=deletingWorks;button.closest('.work-result').classList.toggle('is-selected',chosen)}
+}
+async function deleteSelectedWorks(){
+ if(deletingWorks||!selectedWorks.size)return;
+ const items=[...selectedWorks].map(key=>{const [id,slot]=JSON.parse(key);return {id,slot}});
+ if(!confirm('删除选中的 '+items.length+' 张作品？此操作无法恢复。'))return;
+ deletingWorks=true;message('');renderWorkSelection();
+ try{await api('/works/delete',{items});selectedWorks.clear();selectingWorks=false;await refresh(true);message('已删除 '+items.length+' 张作品')}
+ catch(error){message(error.message)}finally{deletingWorks=false;renderWorkSelection()}
+}
 function node(tag,text,cls){const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n}
 function message(text){if($('#worksMessage')){$('#worksMessage').textContent=text;$('#worksMessage').hidden=!text}$('#personalMessage').textContent=text;$('#personalMessage').hidden=!text}
 async function api(path='',data){const r=await fetch('/api/personal'+path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined,cache:'no-store'});const result=await r.json();if(!r.ok)throw Error(result.error||'请求失败，请重试');return result}
@@ -39,8 +58,35 @@ function openPublish(j,s){const d=$('#publishDialog');d.dataset.job=j.id;d.datas
 async function downloadPublishPackage(e){e.preventDefault();const button=$('#downloadPublishPackage');button.disabled=true;$('#publishStatus').textContent='正在准备发布包…';try{const response=await fetch('/api/personal/publish/package',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:$('#publishDialog').dataset.job,slot:$('#publishDialog').dataset.slot,title:$('#publishTitle').value,caption:$('#publishCaption').value,platform:document.querySelector('input[name="publishPlatform"]:checked').value,confirmed:$('#publishConfirm').checked})});if(!response.ok)throw Error((await response.json()).error||'发布包生成失败');const url=URL.createObjectURL(await response.blob());const a=node('a');a.href=url;a.download='ootd-publish.zip';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);$('#publishStatus').textContent='发布包已准备。解压后上传图片并填写文案，尚未向平台发布。'}catch(error){$('#publishStatus').textContent=error.message}finally{button.disabled=false}}
 function showWorks(){ $('#worksPane').hidden=false;$('#inspirationPane').hidden=true;$('#showWorks').classList.add('active');$('#showInspiration').classList.remove('active');$('#showWorks').setAttribute('aria-pressed','true');$('#showInspiration').setAttribute('aria-pressed','false');$('#personalDialog').close();window.scrollTo({top:0,behavior:'instant'}) }
 function showInspiration(){ $('#worksPane').hidden=true;$('#inspirationPane').hidden=false;$('#showWorks').classList.remove('active');$('#showInspiration').classList.add('active');$('#showWorks').setAttribute('aria-pressed','false');$('#showInspiration').setAttribute('aria-pressed','true');window.dispatchEvent(new Event('ootd:inspiration-open')) }
-function renderWorks(){const list=$('#worksJobs');if(!list)return;const outputJobs=state.jobs.filter(j=>['same','random'].includes(j.kind));list.replaceChildren();let count=0;for(const j of outputJobs){for(const s of j.slots){const card=node('article',null,'work-result');if(s.asset){count++;card.append(image(s.asset,'我的作品 · '+s.label,true));const download=node('a','下载照片','work-download');download.href=s.asset;download.download='ootd-'+j.id+'-'+s.key+'.jpg';card.append(download);card.append(reviewControls(j,s))}else{card.append(node('div',s.status==='failed'?'生成失败':s.status==='uncertain'?'状态待确认':terminal.has(j.status)?'未生成':'正在生成…','work-pending'));const details=node('button','查看进度','secondary');details.onclick=()=>open('history');card.append(details)}list.append(card)}}$('#worksCount').textContent=count?String(count):'';$('#worksEmpty').hidden=outputJobs.length>0;$('#worksEmpty p').textContent=state.authenticated?'生成的照片会保存在这里':'登录后，在这里查看你生成的照片';$('#worksExplore').textContent=state.authenticated?'找张灵感，做我的同款':'邮箱登录';$('#worksExplore').onclick=()=>state.authenticated?showInspiration():open();}
-async function refresh(){if(polling)return;polling=true;try{state=await api();render()}catch(e){if($('#personalDialog').open)message(e.message)}finally{polling=false}}
+function renderWorks(){
+ const list=$('#worksJobs');if(!list)return;
+ const outputJobs=state.jobs.filter(j=>['same','random'].includes(j.kind));
+ const available=new Set(outputJobs.flatMap(j=>j.slots.filter(s=>s.asset).map(s=>workKey(j,s))));
+ selectedWorks=new Set([...selectedWorks].filter(key=>available.has(key)));
+ if(!state.authenticated||!available.size){selectingWorks=false;selectedWorks.clear()}
+ list.replaceChildren();let count=0;
+ for(const j of outputJobs){for(const s of j.slots){
+  const card=node('article',null,'work-result');
+  if(s.asset){
+   count++;card.append(image(s.asset,'我的作品 · '+s.label,!selectingWorks));
+   if(selectingWorks){
+    const choose=node('button',null,'work-select');choose.type='button';choose.dataset.key=workKey(j,s);
+    choose.onclick=()=>{if(deletingWorks)return;const key=choose.dataset.key;selectedWorks.has(key)?selectedWorks.delete(key):selectedWorks.add(key);renderWorkSelection()};
+    card.querySelector('img').onclick=()=>choose.click();card.append(choose);
+   }else{
+    const download=node('a','下载照片','work-download');download.href=s.asset;download.download='ootd-'+j.id+'-'+s.key+'.jpg';card.append(download);card.append(reviewControls(j,s));
+   }
+  }else{
+   card.append(node('div',s.status==='failed'?'生成失败':s.status==='uncertain'?'状态待确认':terminal.has(j.status)?'未生成':'正在生成…','work-pending'));
+   const details=node('button','查看进度','secondary');details.onclick=()=>open('history');card.append(details);
+  }
+  list.append(card);
+ }}
+ $('#worksCount').textContent=count?String(count):'';$('#worksEmpty').hidden=list.childElementCount>0;
+ $('#worksEmpty p').textContent=state.authenticated?'生成的照片会保存在这里':'登录后，在这里查看你生成的照片';$('#worksExplore').textContent=state.authenticated?'找张灵感，做我的同款':'邮箱登录';$('#worksExplore').onclick=()=>state.authenticated?showInspiration():open();
+ renderWorkSelection();
+}
+async function refresh(force=false){if(polling){await polling;if(!force)return}polling=(async()=>{try{state=await api();render()}catch(e){if($('#personalDialog').open)message(e.message)}finally{polling=false}})();return polling}
 async function action(fn){if(busy)return;busy=true;message('');render();try{await fn()}catch(e){message(e.message)}finally{busy=false;await refresh()}}
 async function compressed(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('请选择 JPG、PNG 或 WebP 照片');if(file.size>12_000_000)throw Error('单张照片不能超过 12 MB');const bmp=await createImageBitmap(file,{imageOrientation:'from-image'});if(Math.min(bmp.width,bmp.height)<160){bmp.close();throw Error('照片短边至少需要 160 像素')}const ratio=Math.min(1,1600/Math.max(bmp.width,bmp.height));const canvas=document.createElement('canvas');canvas.width=Math.round(bmp.width*ratio);canvas.height=Math.round(bmp.height*ratio);canvas.getContext('2d').drawImage(bmp,0,0,canvas.width,canvas.height);bmp.close();return canvas.toDataURL('image/jpeg',.9)}
 async function generate(kind,reference){
@@ -48,6 +94,13 @@ async function generate(kind,reference){
  showWorks();if((state.credits?.remaining??0)<2){message('积分不足：本次需要 2 积分，今日剩余 '+(state.credits?.remaining??0)+' 积分。');return}await action(async()=>{const payload={kind,schemeId:state.profile.selectedScheme??null,requestKey:crypto.randomUUID()};if(kind==='random')payload.referenceIds=[...document.querySelectorAll('#grid .card')].map(n=>n.dataset.id).slice(0,500);else payload.referenceId=reference.id;await api('/generate',payload)})
 }
 export function initPersonal(){
+ const actions=node('div',null,'works-actions');$('#worksIdentity').before(actions);actions.append($('#worksIdentity'));
+ const select=node('button','选择删除','secondary');select.id='worksSelect';select.type='button';select.hidden=true;actions.prepend(select);
+ const selection=node('div',null,'works-selection');selection.id='worksSelection';selection.hidden=true;
+ const count=node('span');count.id='worksSelectionCount';count.setAttribute('role','status');
+ const remove=node('button','删除（0）','personal-delete');remove.id='worksDelete';remove.type='button';remove.onclick=deleteSelectedWorks;
+ selection.append(count,remove);$('#worksJobs').before(selection);
+ select.onclick=()=>{if(deletingWorks)return;selectingWorks=!selectingWorks;selectedWorks.clear();renderWorks()};
  const dialog=node('dialog',null,'personal-dialog');dialog.id='personalDialog';dialog.innerHTML=`<div class="personal-heading"><div id="personalTabs" role="tablist" aria-label="个人照片"><button id="profileTab" role="tab" aria-selected="true">我的形象</button><button id="historyTab" role="tab" aria-selected="false">生成记录 <span id="jobsBadge"></span></button></div><button id="closePersonal" aria-label="关闭">×</button></div><p id="personalMessage" class="personal-error" role="status" hidden></p><section id="loginPane"><h2>邮箱验证码登录</h2><p class="personal-muted">登录后保存个人形象，生成属于你的氛围照片。</p><form id="emailLoginForm"><label for="loginEmail">邮箱</label><input id="loginEmail" type="email" name="email" autocomplete="email" maxlength="254" placeholder="输入你的邮箱" required><label for="loginCode">验证码</label><div class="email-code-row"><input id="loginCode" type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="6 位验证码" required><button id="sendEmailCode" type="button" class="secondary">获取验证码</button></div><button id="verifyEmail" type="submit" class="primary">登录</button></form><p class="personal-muted login-note">首次验证自动创建账户。验证码 10 分钟有效。</p></section><div id="accountBar" class="account-bar" hidden><span id="accountEmail"></span><span id="accountCredits" title="每日北京时间 0 点恢复至 10 积分"></span><button id="logoutEmail" type="button">退出登录</button></div><p id="creditRule" class="personal-muted credit-rule"></p><section id="profilePane"><div class="upload-heading"><h2>个人形象库</h2><span id="uploadCount">0/12</span></div><p class="personal-muted">上传你本人的清晰照片。选择一张清晰的本人正面原照作为面部参考。其他角度、全身照和配饰实物照也可一起上传。</p><label class="identity-upload">＋ 添加照片<input id="identityUpload" type="file" accept="image/jpeg,image/png,image/webp" multiple></label><div id="identityPhotos" class="identity-photos"></div><p id="profileSummary"></p><p id="accessories" class="personal-muted"></p><div id="schemeChooser" class="scheme-chooser"></div><div id="identityViews" class="identity-views"></div><p id="viewNote" class="personal-muted" hidden></p><div class="identity-actions"><button id="profileBuild" class="primary">整理形象库</button><button id="continueSame" class="secondary" hidden>用这张参考做同款</button><button id="deleteIdentity" class="personal-delete">删除我的全部照片与记录</button></div><p class="personal-privacy">原片和结果私密保存在你的邮箱账户下，其他设备登录同一邮箱即可访问。照片会发送到 GRsai 用于分析和生成。整理形象库生成 4 张参考；做同款、随机生成每次生成 2 张。请勿将验证码或账户交给他人。</p></section><section id="historyPane" hidden><div id="personalJobs"></div></section><p id="personalService" class="personal-service"></p>`;document.body.append(dialog);
  const preview=node('dialog',null,'personal-preview');preview.id='personalPreview';preview.setAttribute('aria-label','生成图片预览');preview.innerHTML='<button id="closePersonalPreview" aria-label="关闭图片预览">×</button><p id="personalPreviewStatus" role="status"></p><img id="personalPreviewImage" alt="">';document.body.append(preview);$('#closePersonalPreview').onclick=()=>preview.close();preview.addEventListener('click',e=>{if(e.target===preview)preview.close()});preview.addEventListener('close',()=>{$('#personalPreviewImage').removeAttribute('src')});dialog.addEventListener('close',()=>{if(preview.open)preview.close()});
  $('#sendEmailCode').onclick=async()=>{const email=$('#loginEmail');if(!email.reportValidity()||authBusy||Date.now()<resendUntil)return;authBusy=true;$('#sendEmailCode').disabled=true;message('正在发送验证码…');try{const result=await api('/auth/send',{email:email.value});resendUntil=Date.now()+result.retryAfter*1000;message('验证码已发送，请检查收件箱及垃圾邮件。')}catch(e){message(e.message)}finally{authBusy=false;updateResend()}};

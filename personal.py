@@ -240,7 +240,7 @@ def start_review(owner,jid,key):
   j=load_job(jid)
   if not j or j['owner']!=owner:raise UserError('作品不存在')
   if j['status'] not in TERMINAL:raise UserError('请等待当前任务完成')
-  slot=next((s for s in j['slots'] if s['key']==key and s.get('asset')),None)
+  slot=next((s for s in j['slots'] if s['key']==key and s.get('asset') and not s.get('deleted')),None)
   if not slot or j['kind'] not in {'same','random'}:raise UserError('请选择已生成的个人作品')
   if (jid,key) in REVIEWING:return j
   if not j.get('realIdentityPhoto'):
@@ -261,7 +261,7 @@ def start_review(owner,jid,key):
 def publishing_package(owner,q):
  j=load_job(q.get('id',''))
  if not j or j['owner']!=owner:raise UserError('作品不存在')
- slot=next((s for s in j['slots'] if s['key']==q.get('slot') and s.get('asset')),None)
+ slot=next((s for s in j['slots'] if s['key']==q.get('slot') and s.get('asset') and not s.get('deleted')),None)
  if not slot or (slot.get('review') or {}).get('status') not in {'passed','needs_changes','uncertain'}:raise UserError('请先完成作品审核，再人工确认是否准备发布')
  if q.get('confirmed') is not True:raise UserError('请先确认已核对图片与文案')
  title=q.get('title');caption=q.get('caption');platform=q.get('platform')
@@ -481,7 +481,41 @@ def remove_photo(owner,url):
     if row:Path(row[0]).unlink(missing_ok=True)
   return profile
 
-def public_job(j):return {k:v for k,v in j.items() if k not in {'owner','photos','prompt','revision','referenceAsset','requestKey','accessorySourcePhotos'}}
+def public_job(j):
+ result={k:v for k,v in j.items() if k not in {'owner','photos','prompt','revision','referenceAsset','requestKey','accessorySourcePhotos'}}
+ result['slots']=[s for s in j['slots'] if not s.get('deleted')]
+ return result
+
+def delete_works(owner,items):
+ if not isinstance(items,list) or not 1<=len(items)<=500:raise UserError('请选择 1 至 500 张作品')
+ with GUARD:
+  history={j['id']:j for j in jobs(owner)};targets={}
+  for item in items:
+   if not isinstance(item,dict) or not isinstance(item.get('id'),str) or not isinstance(item.get('slot'),str):raise UserError('作品选择格式无效')
+   j=history.get(item['id'])
+   if not j or j['kind'] not in {'same','random'}:raise UserError('作品不存在或不属于当前账户')
+   s=next((s for s in j['slots'] if s['key']==item['slot'] and s.get('asset')),None)
+   if not s:raise UserError('请选择已生成的作品')
+   if j['status'] not in TERMINAL or j['id'] in ACTIVE or (j['id'],s['key']) in REVIEWING or s.get('review',{}).get('status')=='checking':raise UserError('请等待所选作品生成或审核完成后再删除')
+   targets[(j['id'],s['key'])]=(j,s)
+  urls={s['asset'] for j,s in targets.values()}
+  # Keep completed-slot tombstones and the credit ledger so retries cannot regenerate deleted results.
+  for j,s in targets.values():s['deleted']=True
+  visible=[{**j,'slots':[s for s in j['slots'] if not s.get('deleted')]} for j in history.values()]
+  references=json.dumps([read_profile(owner),visible],ensure_ascii=False)
+  paths=[]
+  with db() as c:
+   c.execute('BEGIN IMMEDIATE')
+   for jid in {j['id'] for j,s in targets.values()}:
+    j=history[jid];j['updated']=time.time();c.execute('UPDATE jobs SET data=? WHERE id=? AND owner=?',(json.dumps(j,ensure_ascii=False),jid,owner))
+   for url in urls:
+    # Retain a shared asset when another view or submitted task still needs it.
+    if url in references:continue
+    aid=url.rsplit('/',1)[-1];row=c.execute('SELECT path FROM assets WHERE id=? AND owner=?',(aid,owner)).fetchone()
+    c.execute('DELETE FROM assets WHERE id=? AND owner=?',(aid,owner))
+    if row:paths.append(Path(row[0]))
+  for path in paths:path.unlink(missing_ok=True)
+  return {'deleted':len(targets)}
 
 def handle(h,catalog):
  path=urlparse(h.path).path
@@ -536,6 +570,7 @@ def handle(h,catalog):
   elif path=='/api/personal/photo/identity':send(200,{'profile':select_identity_photo(owner,q.get('photo'))})
   elif path=='/api/personal/scheme/select':send(200,{'profile':select_scheme(owner,q.get('id',''))})
   elif path=='/api/personal/photo/remove':send(200,{'profile':remove_photo(owner,q.get('photo'))})
+  elif path=='/api/personal/works/delete':send(200,delete_works(owner,q.get('items')))
   elif path=='/api/personal/review':send(202,{'job':public_job(start_review(owner,q.get('id',''),q.get('slot')))})
   elif path=='/api/personal/publish/package':send(200,raw=publishing_package(owner,q),content_type='application/zip',filename='ootd-publish.zip')
   elif path=='/api/personal/generate':send(202,{'job':public_job(create_job(owner,q,catalog()))})
