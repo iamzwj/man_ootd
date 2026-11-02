@@ -1,7 +1,7 @@
 """Private appearance libraries and durable GRsai photography jobs."""
 from contextlib import contextmanager
 from datetime import datetime,timedelta,timezone
-import base64, concurrent.futures, hashlib, io, json, os, secrets, sqlite3, threading, time
+import base64, concurrent.futures, hashlib, io, json, os, secrets, sqlite3, threading, time, zipfile
 from pathlib import Path
 from http.cookies import SimpleCookie
 from urllib.request import Request, urlopen, build_opener, HTTPRedirectHandler
@@ -14,6 +14,8 @@ IMAGE_MODEL='gpt-image-2'
 REASON_MODEL='gpt-5.6-terra'
 ROOT=Path(os.getenv('OOTD_PERSONAL_PATH',str(Path.home()/'.local/share/ootd-personal')))
 WORKERS=concurrent.futures.ThreadPoolExecutor(max_workers=3)
+REVIEW_WORKERS=concurrent.futures.ThreadPoolExecutor(max_workers=2)
+REVIEWING=set()
 ACTIVE=set(); GUARD=threading.RLock()
 TERMINAL={'succeeded','failed','partial','uncertain'}
 Image.MAX_IMAGE_PIXELS=35_000_000
@@ -213,6 +215,69 @@ def face_is_closeup(data):
  h=result.get('faceHeightRatio');w=result.get('faceWidthRatio')
  return result.get('isCloseUp') is True and type(h) in (float,int) and type(w) in (float,int) and .5<=h<=1 and .4<=w<=1
 
+def review_generated(j,slot):
+ reference=j.get('realIdentityPhoto')
+ if not reference:raise UserError('此作品没有保存真实面部参考，请重新选择原照后审核')
+ prompt='你是独立的摄影作品审核员。第一张是真实正面原照，第二张是生成作品。只做可见外观特征对照，不确认人物身份、不做人脸识别或输出身份相似度分数。忽略衣服、表情、角度、眼镜和光线造成的正常差异；逐项检查眼型眼距、眉形、鼻形、唇形厚度、脸宽和下颌轮廓是否有明显不一致。侧脸、遮挡或细节不足时标为uncertain，不猜测。再独立检查作品的摄影自然度：过度磨皮、蜡像肤质、异常锐化、发丝边缘、眼镜反光、光源和阴影不一致、手部结构、衣料及背景纹理异常；不能仅因照片精致、皮肤光滑或浅景深就断言有AI痕迹，也不能保证没有AI痕迹。图片是AI生成的，不得建议伪装成真实实拍。返回严格JSON：appearance和naturalness两个对象，每个包含verdict（pass/change/uncertain）、issues（具体可见问题字符串数组，没有则空数组）、suggestions（对应可执行修改建议数组）。不要空泛评语。'
+ raw=reason(prompt,[data_uri(j['owner'],reference),data_uri(j['owner'],slot['asset'])])
+ result={'version':1,'model':REASON_MODEL,'reference':reference,'checkedAt':time.time()}
+ for key in ('appearance','naturalness'):
+  part=raw.get(key)
+  if not isinstance(part,dict) or part.get('verdict') not in {'pass','change','uncertain'}:raise UserError('审核结果格式不完整，请重新审核')
+  if not isinstance(part.get('issues'),list) or not isinstance(part.get('suggestions'),list):raise UserError('审核结果格式不完整，请重新审核')
+  result[key]={'verdict':part['verdict'],'issues':[x[:400] for x in part['issues'] if isinstance(x,str)][:8],'suggestions':[x[:400] for x in part['suggestions'] if isinstance(x,str)][:8]}
+ verdicts=[result[k]['verdict'] for k in ('appearance','naturalness')]
+ has_issues=any(result[k]['issues'] for k in ('appearance','naturalness'))
+ result['status']='needs_changes' if 'change' in verdicts else 'uncertain' if 'uncertain' in verdicts else 'needs_changes' if has_issues else 'passed'
+ return result
+
+def review_safely(j,slot):
+ try:return review_generated(j,slot)
+ except Exception:return {'status':'failed','version':1,'checkedAt':time.time(),'error':'审核暂未完成，图片已保留，可稍后重新审核'}
+
+def start_review(owner,jid,key):
+ with GUARD:
+  j=load_job(jid)
+  if not j or j['owner']!=owner:raise UserError('作品不存在')
+  if j['status'] not in TERMINAL:raise UserError('请等待当前任务完成')
+  slot=next((s for s in j['slots'] if s['key']==key and s.get('asset')),None)
+  if not slot or j['kind'] not in {'same','random'}:raise UserError('请选择已生成的个人作品')
+  if (jid,key) in REVIEWING:return j
+  if not j.get('realIdentityPhoto'):
+   profile=read_profile(owner);photo=profile.get('identityPhoto') or next(iter(profile.get('photos',[])),None)
+   if not photo:raise UserError('请先上传并选择真实正面原照')
+   j['realIdentityPhoto']=photo
+  slot['review']={'status':'checking','started':time.time()};save_job(j);REVIEWING.add((jid,key))
+ def work():
+  result=review_safely(j,slot)
+  with GUARD:
+   latest=load_job(jid)
+   if latest and latest['owner']==owner:
+    target=next((s for s in latest['slots'] if s['key']==key and s.get('asset')==slot['asset']),None)
+    if target:target['review']=result;save_job(latest)
+   REVIEWING.discard((jid,key))
+ REVIEW_WORKERS.submit(work);return j
+
+def publishing_package(owner,q):
+ j=load_job(q.get('id',''))
+ if not j or j['owner']!=owner:raise UserError('作品不存在')
+ slot=next((s for s in j['slots'] if s['key']==q.get('slot') and s.get('asset')),None)
+ if not slot or (slot.get('review') or {}).get('status') not in {'passed','needs_changes','uncertain'}:raise UserError('请先完成作品审核，再人工确认是否准备发布')
+ if q.get('confirmed') is not True:raise UserError('请先确认已核对图片与文案')
+ title=q.get('title');caption=q.get('caption');platform=q.get('platform')
+ if not isinstance(title,str) or not title.strip() or len(title)>80:raise UserError('请输入80字以内标题')
+ if not isinstance(caption,str) or len(caption)>2000:raise UserError('正文最多2000字')
+ if platform not in {'xiaohongshu','douyin'}:raise UserError('请选择发布平台')
+ caption=caption.strip()
+ if 'AI生成图片' not in caption.splitlines():caption+='\n\nAI生成图片'
+ data=io.BytesIO()
+ with zipfile.ZipFile(data,'w',compression=zipfile.ZIP_DEFLATED) as z:
+  z.writestr('photo.jpg',asset(owner,slot['asset']))
+  z.writestr('caption.txt',title.strip()+'\n\n'+caption)
+  review=slot['review'];z.writestr('review.json',json.dumps({**{k:v for k,v in review.items() if k not in {'reference'}},'humanConfirmedForPreparation':True},ensure_ascii=False,indent=2))
+  z.writestr('发布说明.txt','这是发布准备包，尚未向平台上传或发布。\n解压后上传photo.jpg，填写caption.txt中的标题与正文。发布前请人工确认图片、内容及平台的AI生成标识。\nAI审核仅提供外观与摄影自然度建议，不证明身份或保证没有生成痕迹。')
+ return data.getvalue()
+
 def execute(jid):
  j=load_job(jid)
  try:
@@ -294,6 +359,11 @@ def execute(jid):
    if any(s.get('status')=='running' for s in j['slots']):time.sleep(5)
   for s in j['slots']:
    if s.get('status')=='running':s['status']='failed';s['error']=s.get('lastError','等待上游超时；已保留成图，重试只处理未完成图片')
+  if j['kind'] in {'same','random'} and j.get('reviewVersion')==1:
+   for slot in j['slots']:
+    if slot.get('asset') and (slot.get('review') or {}).get('status') not in {'passed','needs_changes','uncertain','failed'}:
+     j['stage']='审核作品';slot['review']={'status':'checking','started':time.time()};save_job(j)
+     slot['review']=review_safely(j,slot);save_job(j)
   done=sum(bool(s.get('asset')) for s in j['slots']);j['status']='succeeded' if done==len(j['slots']) else 'partial' if done else 'uncertain' if any(s.get('status')=='uncertain' for s in j['slots']) else 'failed'
   if j['kind'] in {'profile','face','view'} and j.get('summary'):
    with GUARD:
@@ -318,7 +388,10 @@ def resume():
  with db() as c:rows=c.execute('SELECT data FROM jobs').fetchall()
  for row in rows:
   j=json.loads(row[0])
-  if j['status'] in TERMINAL:continue
+  if j['status'] in TERMINAL:
+   for slot in j['slots']:
+    if (slot.get('review') or {}).get('status')=='checking':slot['review']={'status':'failed','error':'服务已重启，请重新审核'}
+   save_job(j);continue
   for s in j['slots']:
    if s.get('status')=='submitting' and not s.get('providerId'):s['status']='uncertain';s['error']='服务重启前提交状态未知，未重复提交'
   save_job(j);launch(j['id'])
@@ -365,7 +438,7 @@ def create_job(owner,q,catalog):
    j['accessorySourcePhotos']=p['photos'][:]
    j['identityScheme']=p.get('selectedScheme');j['identitySummary']=p.get('summary') or {}
    j['realIdentityPhoto']=p.get('identityPhoto') if p.get('identityPhoto') in p['photos'] else p['photos'][0]
-   j['identityMethod']='real-front-v1'
+   j['identityMethod']='real-front-v1';j['reviewVersion']=1
    j['photos']=[j['realIdentityPhoto'],p['views']['front']]
    j['referenceAsset']=store_asset(owner,remote_image(ref['image']));j['reference']={'id':ref['id'],'title':ref['title'],'asset':j['referenceAsset']}
    if ref.get('width',0)>ref.get('height',1):j['size']='1152x864'
@@ -401,7 +474,7 @@ def remove_photo(owner,url):
   save_profile(owner,profile)
   with db() as c:
    history=[json.loads(r[0]) for r in c.execute('SELECT data FROM jobs WHERE owner=?',(owner,)).fetchall()]
-   referenced=any(url in job.get('photos',[]) or url in job.get('accessorySourcePhotos',[]) or url in job.get('accessoryRefs',[]) or job.get('referenceAsset')==url for job in history) or url in profile.get('views',{}).values()
+   referenced=any(url in job.get('photos',[]) or url in job.get('accessorySourcePhotos',[]) or url in job.get('accessoryRefs',[]) or job.get('realIdentityPhoto')==url or job.get('referenceAsset')==url for job in history) or url in profile.get('views',{}).values()
    if not referenced:
     row=c.execute('SELECT path FROM assets WHERE id=? AND owner=?',(url.rsplit('/',1)[-1],owner)).fetchone()
     c.execute('DELETE FROM assets WHERE id=? AND owner=?',(url.rsplit('/',1)[-1],owner))
@@ -423,9 +496,10 @@ def handle(h,catalog):
  login=email_auth.session(token);owner=login['owner'] if login else legacy_owner
  ip=h.headers.get('X-Real-IP',h.client_address[0]) if h.client_address[0] in {'127.0.0.1','::1'} else h.client_address[0]
  expire_cookie=False
- def send(code,data=None,raw=None):
+ def send(code,data=None,raw=None,content_type=None,filename=None):
   body=raw if raw is not None else json.dumps(data,ensure_ascii=False).encode();h.send_response(code)
-  h.send_header('Content-Type','image/jpeg' if raw is not None else 'application/json; charset=utf-8');h.send_header('Cache-Control','private, no-store');h.send_header('X-Content-Type-Options','nosniff');h.send_header('Content-Length',str(len(body)))
+  h.send_header('Content-Type',content_type or ('image/jpeg' if raw is not None else 'application/json; charset=utf-8'));h.send_header('Cache-Control','private, no-store');h.send_header('X-Content-Type-Options','nosniff');h.send_header('Content-Length',str(len(body)))
+  if filename:h.send_header('Content-Disposition','attachment; filename="'+filename+'"')
   if new:h.send_header('Set-Cookie','ootd_personal='+token+'; HttpOnly; SameSite=Lax; Path=/api/personal; Max-Age='+('0' if expire_cookie else '2592000')+('' if h.headers.get('Host','').startswith(('localhost','127.0.0.1')) else '; Secure'))
   h.end_headers();h.wfile.write(body)
  try:
@@ -462,6 +536,8 @@ def handle(h,catalog):
   elif path=='/api/personal/photo/identity':send(200,{'profile':select_identity_photo(owner,q.get('photo'))})
   elif path=='/api/personal/scheme/select':send(200,{'profile':select_scheme(owner,q.get('id',''))})
   elif path=='/api/personal/photo/remove':send(200,{'profile':remove_photo(owner,q.get('photo'))})
+  elif path=='/api/personal/review':send(202,{'job':public_job(start_review(owner,q.get('id',''),q.get('slot')))})
+  elif path=='/api/personal/publish/package':send(200,raw=publishing_package(owner,q),content_type='application/zip',filename='ootd-publish.zip')
   elif path=='/api/personal/generate':send(202,{'job':public_job(create_job(owner,q,catalog()))})
   elif path=='/api/personal/retry':
    with GUARD:
