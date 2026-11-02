@@ -2,6 +2,71 @@ const $=s=>document.querySelector(s);
 let state={authenticated:false,profile:{photos:[],views:{}},jobs:[]},pendingReference=null,pendingAction=null,busy=false,polling=false,activeTab='profile',authBusy=false,resendUntil=0;
 const labels={front:'正面',side:'侧面',back:'背面',face:'面部特写'};
 const terminal=new Set(['succeeded','failed','partial','uncertain']);
+function createWorkProgress(){
+ const tracked=new Map();let dismissed=false;
+ function update(job){
+  const previous=tracked.get(job.id),total=Math.max(previous?.total||0,job.slots.length);
+  const success=job.slots.filter(s=>s.asset).length,unknown=job.slots.filter(s=>!s.asset&&s.status==='uncertain').length;
+  const pending=!terminal.has(job.status);
+  const failed=pending?job.slots.filter(s=>!s.asset&&s.status==='failed').length:Math.max(0,total-success-unknown);
+  tracked.set(job.id,{total,success,unknown,pending,failed});
+ }
+ function track(job){
+  if(!job||!['same','random'].includes(job.kind))return;
+  if(!tracked.has(job.id)){
+   if(![...tracked.values()].some(j=>j.pending||j.unknown))tracked.clear();
+   dismissed=false;
+  }
+  update(job);
+ }
+ return {
+  track,
+  observe(jobs){
+   const current=new Map(jobs.filter(j=>['same','random'].includes(j.kind)).map(j=>[j.id,j]));
+   for(const job of current.values())if(!terminal.has(job.status)||job.status==='uncertain')track(job);
+   for(const [id,previous] of tracked){
+    const job=current.get(id);
+    if(job&&(previous.pending||previous.unknown||!terminal.has(job.status)))update(job);
+    else tracked.set(id,{...previous,pending:false,unknown:0,failed:previous.total-previous.success});
+   }
+  },
+  snapshot(){
+   if(!tracked.size||dismissed)return null;
+   const entries=[...tracked.values()];
+   const sum=key=>entries.reduce((total,j)=>total+j[key],0);
+   const total=sum('total'),success=sum('success'),failed=sum('failed'),unknown=sum('unknown');
+   const pending=entries.some(j=>j.pending);
+   return {total,success,failed,unknown,done:success+failed,pending,status:pending?'running':unknown?'uncertain':failed?(success?'partial':'failed'):'succeeded'};
+  },
+  dismiss(){if(![...tracked.values()].some(j=>j.pending))dismissed=true},
+  reset(){tracked.clear();dismissed=false}
+ };
+}
+const workProgress=createWorkProgress();
+let generationSubmitting=false,generationError='',progressOwner=null;
+function renderGenerationNotice(){
+ const card=$('#generationNotice');if(!card)return;
+ const owner=state.authenticated?(state.user?.email||'current-account'):null;
+ if(owner!==progressOwner){workProgress.reset();generationError='';progressOwner=owner}
+ if(!state.authenticated){card.hidden=true;$('#worksRunningBadge').hidden=true;document.body.classList.remove('has-generation-notice');return}
+ workProgress.observe(state.jobs);
+ const progress=workProgress.snapshot();
+ const running=state.jobs.filter(j=>['same','random'].includes(j.kind)&&!terminal.has(j.status)).length;
+ const badge=$('#worksRunningBadge');badge.textContent=running?String(running):'';badge.hidden=!running;
+ card.hidden=!progress&&!generationSubmitting&&!generationError;
+ document.body.classList.toggle('has-generation-notice',!card.hidden);
+ if(card.hidden)return;
+ const error=!!generationError,status=error?'failed':generationSubmitting?'submitting':progress.status;
+ card.dataset.status=status;
+ const titles={submitting:'正在提交生成任务',running:'生成中（'+progress?.done+'/'+progress?.total+'）',succeeded:'生成成功',partial:'部分生成完成',failed:'生成未完成',uncertain:'生成状态待确认'};
+ $('#generationNoticeTitle').textContent=error?'未能开始生成':titles[status];
+ $('#generationNoticeDescription').textContent=error?generationError:status==='submitting'?'稍候片刻，提交后可继续浏览灵感':progress.pending?(progress.success+' 张已生成'+(progress.failed?' · '+progress.failed+' 张失败':'')+' · 可继续浏览灵感'):progress.unknown?'部分结果尚待确认，请查看生成记录':progress.failed?(progress.success+' 张已生成 · '+progress.failed+' 张未完成'):(progress.success+' 张照片已保存到我的作品');
+ $('#generationNoticeClose').hidden=!error&&(generationSubmitting||progress?.pending);
+ const bar=$('#generationNoticeProgress');bar.hidden=error||status==='submitting'||!progress?.pending;
+ bar.setAttribute('aria-valuemax',String(progress?.total||1));bar.setAttribute('aria-valuenow',String(progress?.done||0));
+ $('#generationNoticeFill').style.width=(progress?100*progress.done/progress.total:0)+'%';
+ $('#generationNoticeView').textContent=progress?.unknown?'查看进度':progress?.pending?'查看进度':'查看作品';
+}
 let selectingWorks=false,deletingWorks=false,selectedWorks=new Set();
 const workKey=(j,s)=>JSON.stringify([j.id,s.key]);
 function renderWorkSelection(){
@@ -51,6 +116,7 @@ function render(){
   list.append(card)
  }
  renderWorks();
+ renderGenerationNotice();
  $('#personalService').textContent=state.configured?state.imageModel+' · '+state.reasonModel+' · GRsai':'生图服务暂未配置';
 }
 function reviewControls(j,s){const wrap=node('div',null,'work-review'),r=s.review||{};const text={checking:'审核中',passed:'审核通过',needs_changes:'建议调整',uncertain:'需要人工核对',failed:'审核未完成'};const details=node('details');const summary=node('summary','AI审核 · '+(text[r.status]||'未审核'));details.append(summary);if(r.error)details.append(node('p',r.error,'personal-error'));for(const [key,label] of [['appearance','外观特征对照'],['naturalness','摄影自然度']]){if(!r[key])continue;details.append(node('strong',label));for(const issue of r[key].issues||[])details.append(node('p',issue));for(const tip of r[key].suggestions||[])details.append(node('p','建议：'+tip));if(!(r[key].issues||[]).length)details.append(node('p',r[key].verdict==='pass'?'未发现明显问题':'参考不足，请人工核对'))}details.append(node('p','审核是辅助建议，发布前仍需你确认。','personal-muted'));wrap.append(details);const run=node('button',r.status?'重新审核':'审核这张','review-action');run.disabled=r.status==='checking'||busy;run.onclick=()=>action(()=>api('/review',{id:j.id,slot:s.key}));wrap.append(run);if(['passed','needs_changes','uncertain'].includes(r.status)){const prepare=node('button',r.status==='passed'?'准备发布':'人工确认后准备发布','review-action');prepare.onclick=()=>openPublish(j,s);wrap.append(prepare)}return wrap}
@@ -91,9 +157,20 @@ async function action(fn){if(busy)return;busy=true;message('');render();try{awai
 async function compressed(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('请选择 JPG、PNG 或 WebP 照片');if(file.size>12_000_000)throw Error('单张照片不能超过 12 MB');const bmp=await createImageBitmap(file,{imageOrientation:'from-image'});if(Math.min(bmp.width,bmp.height)<160){bmp.close();throw Error('照片短边至少需要 160 像素')}const ratio=Math.min(1,1600/Math.max(bmp.width,bmp.height));const canvas=document.createElement('canvas');canvas.width=Math.round(bmp.width*ratio);canvas.height=Math.round(bmp.height*ratio);canvas.getContext('2d').drawImage(bmp,0,0,canvas.width,canvas.height);bmp.close();return canvas.toDataURL('image/jpeg',.9)}
 async function generate(kind,reference){
  if(busy){message('正在保存形象选择，请稍候再生成。');return}await refresh();if(!state.authenticated){pendingAction={kind,reference};open();message('邮箱登录后即可建立形象库和生成个人照片。');return}if(Object.keys(state.profile.views||{}).length<4){pendingReference=reference;open();message('先上传照片并完成形象库整理，然后就能做同款。');return}
- showWorks();if((state.credits?.remaining??0)<2){message('积分不足：本次需要 2 积分，今日剩余 '+(state.credits?.remaining??0)+' 积分。');return}await action(async()=>{const payload={kind,schemeId:state.profile.selectedScheme??null,requestKey:crypto.randomUUID()};if(kind==='random')payload.referenceIds=[...document.querySelectorAll('#grid .card')].map(n=>n.dataset.id).slice(0,500);else payload.referenceId=reference.id;await api('/generate',payload)})
+ if((state.credits?.remaining??0)<2){generationError='积分不足：本次需要 2 积分，今日剩余 '+(state.credits?.remaining??0)+' 积分。';renderGenerationNotice();return}
+ generationError='';generationSubmitting=true;renderGenerationNotice();
+ await action(async()=>{const payload={kind,schemeId:state.profile.selectedScheme??null,requestKey:crypto.randomUUID()};if(kind==='random')payload.referenceIds=[...document.querySelectorAll('#grid .card')].map(n=>n.dataset.id).slice(0,500);else payload.referenceId=reference.id;
+  try{const result=await api('/generate',payload);generationSubmitting=false;state.jobs=[result.job,...state.jobs.filter(j=>j.id!==result.job.id)];workProgress.track(result.job);renderWorks();if($('#personalDialog').open)$('#personalDialog').close();renderGenerationNotice()}
+  catch(error){generationSubmitting=false;generationError=error.message;renderGenerationNotice();throw error}
+ });generationSubmitting=false;renderGenerationNotice();
 }
 export function initPersonal(){
+ const badge=node('span',null,'works-running-badge');badge.id='worksRunningBadge';badge.hidden=true;$('#showWorks').append(badge);
+ const notice=node('aside',null,'generation-notice');notice.id='generationNotice';notice.hidden=true;notice.setAttribute('aria-label','图片生成进度');
+ notice.innerHTML='<div class="generation-notice-icon" aria-hidden="true"></div><div class="generation-notice-content"><div id="generationNoticeStatus" role="status" aria-live="polite" aria-atomic="true"><h2 id="generationNoticeTitle"></h2><p id="generationNoticeDescription"></p></div><div id="generationNoticeProgress" class="generation-notice-progress" role="progressbar" aria-label="图片生成进度" aria-valuemin="0"><span id="generationNoticeFill"></span></div><button id="generationNoticeView" type="button">查看进度 <span aria-hidden="true">↗</span></button></div><button id="generationNoticeClose" class="generation-notice-close" type="button" aria-label="关闭生成提示">×</button>';
+ document.body.append(notice);
+ $('#generationNoticeClose').onclick=()=>{generationError='';workProgress.dismiss();renderGenerationNotice()};
+ $('#generationNoticeView').onclick=()=>{generationError='';if(workProgress.snapshot()?.unknown)open('history');else showWorks();renderGenerationNotice()};
  const actions=node('div',null,'works-actions');$('#worksIdentity').before(actions);actions.append($('#worksIdentity'));
  const select=node('button','选择删除','secondary');select.id='worksSelect';select.type='button';select.hidden=true;actions.prepend(select);
  const selection=node('div',null,'works-selection');selection.id='worksSelection';selection.hidden=true;

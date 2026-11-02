@@ -48,6 +48,8 @@ ELLEMEN 公开摄影组图、360 图片搜索、必应国内站点搜索、图�
 
 ## 我的作品批量删除
 
+点击生成后保留当前页面与滚动位置。右下角提示卡显示本批图片进度（例如“生成中（2/4）”），连续提交的任务合并计数；结束后显示成功或部分失败，可点击“查看作品”主动进入作品页。刷新恢复进行中的任务，历史完成任务不会重复弹出提示。
+
 ## Personal appearance generation contract
 
 Expressions follow the style image: gaze direction, smile, mouth opening, eyelid and eyebrow movement, and mood. The scheme face close-up supplies facial structure rather than its fixed expression. If the style expression is not visible, use a relaxed expression appropriate to the scene. Review allows normal expression-related changes and does not ask to restore the face-reference expression.
