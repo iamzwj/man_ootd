@@ -6,6 +6,7 @@ import personal as p
 class PersonalTests(unittest.TestCase):
  def setUp(self):
   self.review=patch.object(p,'review_generated',return_value={'status':'passed','version':1});self.review.start();self.addCleanup(self.review.stop)
+  self.accessory_check=patch.object(p,'accessories_match',return_value=True);self.accessory_check.start();self.addCleanup(self.accessory_check.stop)
   self.tmp=tempfile.TemporaryDirectory();self.root=patch.object(p,'ROOT',Path(self.tmp.name));self.root.start()
   out=io.BytesIO();Image.new('RGB',(240,320),'gray').save(out,'JPEG');self.img=out.getvalue();self.owner='owner-a';self.photo=p.store_asset(self.owner,self.img)
   p.save_profile(self.owner,{'photos':[self.photo],'revision':'one','views':{},'summary':None})
@@ -27,7 +28,7 @@ class PersonalTests(unittest.TestCase):
  def test_exact_two_outputs_and_identity_prompt(self):
   self.ready();j=self.make('same',referenceId='ref');self.assertEqual(len(j['slots']),2);self.assertNotEqual(j['status'],'succeeded')
   with patch.object(p,'reason',return_value={'style':'咖啡馆侧光'}),patch.object(p,'submit_image',side_effect=['first','second']) as submit,patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/result.jpg'}]}),patch.object(p,'remote_image',return_value=self.img):p.execute(j['id'])
-  done=p.load_job(j['id']);self.assertEqual(done['status'],'succeeded');self.assertTrue(all(s.get('asset') for s in done['slots']));self.assertEqual(submit.call_count,2);self.assertIn('绝不能复制最后一张里的人脸',submit.call_args.args[0]);self.assertEqual(len(submit.call_args.args[1]),3)
+  done=p.load_job(j['id']);self.assertEqual(done['status'],'succeeded');self.assertTrue(all(s.get('asset') for s in done['slots']));self.assertEqual(submit.call_count,2);self.assertIn('绝不能复制最后一张里的人脸',submit.call_args.args[0]);self.assertEqual(len(submit.call_args.args[1]),5)
  def test_partial_success_kept(self):
   self.ready();j=self.make('same',referenceId='ref')
   with patch.object(p,'reason',return_value={'style':'自然光'}),patch.object(p,'submit_image',side_effect=['first',p.UserError('模型维护')]),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/out.jpg'}]}),patch.object(p,'remote_image',return_value=self.img):p.execute(j['id'])

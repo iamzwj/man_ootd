@@ -185,6 +185,12 @@ FACE_FRAMING='这是一张面部特写，EXTREME CLOSE-UP HEADSHOT，不是全�
 
 NATURAL_CAPTURE='保持真实正面原照的眼睛大小与间距、眉形、鼻梁鼻翼、唇形、脸宽、下颌轮廓和年龄感，不重新设计长相。只调整照片成像方式：像普通相机在现场拍出的自然照片，沿用参考场景的机位、构图、明暗关系、衣着与姿态。保留本人自然肤色及皮肤微小明暗过渡，柔和收敛高光和锐化，不拉高皮肤局部对比，不做美颜磨皮。保持面部细节适度清晰，避免每一处边缘都同样锐利；衣物和背景仍有真实细节。降低HDR和人像精修感，但不添加可见颗粒、模糊、噪点或任何五官改动。'
 
+IDENTITY_VIEW_ORDER=('front','side','back','face')
+SCHEME_METHOD='scheme-four-v1'
+
+def scheme_prompt(j,style):
+ return ('使用当前选定个人形象方案中的同一个成年人生成独立自然生活摄影。第1张为正面全身，第2张为侧面全身，第3张为背面全身，第4张为面部特写，第5张且最后一张为风格参考。前四张共同约束人物长相、发型、体态、眼镜与耳饰；面部细节、眼型眼距、鼻形、唇形、脸宽和下颌轮廓以第4张面部特写为主，身体比例与各角度外观参考第1至3张。不美化换脸、不削瘦面颊、不放大眼睛、不变年轻。必须保留形象方案中的眼镜，不能因为风格人物没有眼镜而摘掉、换成墨镜或遮住；耳饰和其他配饰遵守方案配饰清单。最后一张只提供场景、光线、构图、动作和衣服裤子，不提供长相、发型、眼镜或首饰，绝不能复制最后一张里的人脸。不参考上传原照或其他方案。完整日常衣着，无裸露、内衣泳装；禁止文字、水印、拼图。风格要求：'+style+'。选定方案外观描述：'+j.get('identitySummary',{}).get('description','')+accessory_prompt(j,j.get('accessories',[]))+NATURAL_CAPTURE.replace('真实正面原照','选定方案面部特写'))
+
 def accessory_rules(j,items):
  policy=j.get('accessoryPolicy') or {}
  excluded=[x for x in policy.get('excluded',[]) if isinstance(x,str)][:12]
@@ -201,7 +207,8 @@ def accessory_prompt(j,items):
 
 def accessories_match(data,j):
  policy=j.get('accessoryPolicy') or {}
- result=reason('检查生成图是否遵守配饰要求。要求佩戴：'+json.dumps(policy.get('required',[]),ensure_ascii=False)+'；绝对禁止：'+json.dumps(policy.get('excluded',[]),ensure_ascii=False)+'。返回 JSON：matches（布尔值），missingVisibleAccessories（数组，仅身体相应区域清楚可见却缺失的配饰；颈部可见应有项链，手腕可见应有手串；出画或遮挡不算缺失），forbiddenDetected（图中出现的禁止配饰数组）。手串不能误认成手表，不能因为背景风格而放宽要求。', ['data:image/jpeg;base64,'+base64.b64encode(data).decode()])
+ required=j.get('accessories',[]) if j.get('identityMethod')==SCHEME_METHOD else policy.get('required',[])
+ result=reason('检查生成图是否遵守配饰要求。要求佩戴：'+json.dumps(required,ensure_ascii=False)+'；绝对禁止：'+json.dumps(policy.get('excluded',[]),ensure_ascii=False)+'。返回 JSON：matches（布尔值），missingVisibleAccessories（数组，仅身体相应区域清楚可见却缺失的配饰；眼部可见且要求眼镜时必须佩戴指定眼镜，不得用墨镜替代；颈部可见应有指定项链，手腕可见应有指定手串；出画或遮挡不算缺失），forbiddenDetected（图中出现的禁止配饰数组）。手串不能误认成手表，不能因为背景风格而放宽要求。', ['data:image/jpeg;base64,'+base64.b64encode(data).decode()])
  return result.get('matches') is True and result.get('missingVisibleAccessories')==[] and result.get('forbiddenDetected')==[]
 
 def portrait_input(j,slot):
@@ -216,11 +223,14 @@ def face_is_closeup(data):
  return result.get('isCloseUp') is True and type(h) in (float,int) and type(w) in (float,int) and .5<=h<=1 and .4<=w<=1
 
 def review_generated(j,slot):
- reference=j.get('realIdentityPhoto')
+ scheme=j.get('identityMethod')==SCHEME_METHOD
+ reference=j.get('identityViews',{}).get('face') if scheme else j.get('realIdentityPhoto')
  if not reference:raise UserError('此作品没有保存真实面部参考，请重新选择原照后审核')
  prompt='你是独立的摄影作品审核员。第一张是真实正面原照，第二张是生成作品。只做可见外观特征对照，不确认人物身份、不做人脸识别或输出身份相似度分数。忽略衣服、表情、角度、眼镜和光线造成的正常差异；逐项检查眼型眼距、眉形、鼻形、唇形厚度、脸宽和下颌轮廓是否有明显不一致。侧脸、遮挡或细节不足时标为uncertain，不猜测。再独立检查作品的摄影自然度：过度磨皮、蜡像肤质、异常锐化、发丝边缘、眼镜反光、光源和阴影不一致、手部结构、衣料及背景纹理异常；不能仅因照片精致、皮肤光滑或浅景深就断言有AI痕迹，也不能保证没有AI痕迹。图片是AI生成的，不得建议伪装成真实实拍。返回严格JSON：appearance和naturalness两个对象，每个包含verdict（pass/change/uncertain）、issues（具体可见问题字符串数组，没有则空数组）、suggestions（对应可执行修改建议数组）。不要空泛评语。'
+ if scheme:
+  prompt=prompt.replace('真实正面原照','选定方案的面部特写').replace('角度、眼镜和光线','角度和光线')+'同时核对眼镜与耳饰是否按方案保留；可见区域缺少指定眼镜或款式不符必须列为change，不得忽略。方案配饰要求：'+json.dumps(j.get('accessories',[]),ensure_ascii=False)
  raw=reason(prompt,[data_uri(j['owner'],reference),data_uri(j['owner'],slot['asset'])])
- result={'version':1,'model':REASON_MODEL,'reference':reference,'checkedAt':time.time()}
+ result={'version':1,'model':REASON_MODEL,'reference':reference,'referenceKind':'scheme-face' if scheme else 'real-original','checkedAt':time.time()}
  for key in ('appearance','naturalness'):
   part=raw.get(key)
   if not isinstance(part,dict) or part.get('verdict') not in {'pass','change','uncertain'}:raise UserError('审核结果格式不完整，请重新审核')
@@ -243,7 +253,7 @@ def start_review(owner,jid,key):
   slot=next((s for s in j['slots'] if s['key']==key and s.get('asset') and not s.get('deleted')),None)
   if not slot or j['kind'] not in {'same','random'}:raise UserError('请选择已生成的个人作品')
   if (jid,key) in REVIEWING:return j
-  if not j.get('realIdentityPhoto'):
+  if j.get('identityMethod')!=SCHEME_METHOD and not j.get('realIdentityPhoto'):
    profile=read_profile(owner);photo=profile.get('identityPhoto') or next(iter(profile.get('photos',[])),None)
    if not photo:raise UserError('请先上传并选择真实正面原照')
    j['realIdentityPhoto']=photo
@@ -293,6 +303,11 @@ def execute(jid):
     summary['accessories']=accessory_rules(j,summary['accessories'])
     j['summary']=summary
     j['prompt']='生成这同一个成年人的独立形象参考照片，严格保持本人脸型五官、发型、体态，不美化换脸。原片只提供身份，不沿用原片的半身、坐姿或裁切构图。统一穿纯白圆领T恤、深灰直筒长裤、简洁白色休闲鞋；没有外套，无裸露，正侧背和特写使用相同衣服与发型。中性背景和自然光。只输出单张照片，不要拼图、文字。外观：'+summary['description']+'。常见配饰：'+json.dumps(summary['accessories'],ensure_ascii=False)+accessory_prompt(j,summary['accessories'])
+   elif j.get('identityMethod')==SCHEME_METHOD:
+    ref=data_uri(j['owner'],j['referenceAsset'])
+    scene=reason('只分析最后一张风格图的场景、光线、构图、动作与衣服裤子，不描述人物五官、发型、眼镜和首饰。返回 JSON：style（具体中文描述）。', [ref])
+    if not isinstance(scene.get('style'),str):raise UserError('风格分析字段不完整，请重试')
+    j['prompt']=scheme_prompt(j,scene['style'])
    else:
     if j.get('accessorySourcePhotos') and 'accessoryRefs' not in j:
      sources=j['accessorySourcePhotos'][:12]
@@ -305,7 +320,7 @@ def execute(jid):
     scene=reason('只分析最后一张场景参考的摄影风格，不描述或复制其中人物的脸。返回 JSON：style（详细中文描述场景、衣着、自然姿态、构图、光线、色彩、镜头质感）。前面的图片是用户本人，只用于保持身份。',images+[ref])
     if not isinstance(scene.get('style'),str):raise UserError('场景分析字段不完整，请重试')
     j['prompt']='为前几张身份参考中的同一个成年人拍摄一张自然生活感摄影。第一张是用户真实正面原照，是面部身份的最高优先级依据：严格保持其眼型和自然眼裂大小、眼距、眉形眉毛浓度、鼻形、唇形厚度与宽度、面颊饱满程度、脸宽、下巴形状和五官比例。不放大或画圆眼睛，不加粗眉毛或嘴唇，不拉长下半脸、不削瘦面颊或收尖下巴、不变年轻、不美化换脸。第二张是用户选定方案的外观辅助图，仅参考发型、眼镜和体态；衣着遵循最后一张场景参考，绝不能覆盖第一张的眼睛、鼻子、嘴唇和脸型；两张冲突时真实正面原照优先。人物朝向、机位与动作遵循最后一张场景参考，不固定为正面或低机位。最后一张仅作场景、光影、构图和姿态参考，绝不能复制最后一张里的人脸。完整日常衣着、无裸露、无内衣泳装。禁止文字、水印、拼图。摄影要求：'+scene['style']+'。用户常见配饰：'+json.dumps(j.get('accessories',j.get('identitySummary',p.get('summary') or {}).get('accessories',[])),ensure_ascii=False)+accessory_prompt(j,j.get('accessories',j.get('identitySummary',p.get('summary') or {}).get('accessories',[])))+'第3张至场景参考之前的附加图片仅作配饰实物参考，不改变真实正面原照中的身份。'+NATURAL_CAPTURE
-   if j['kind'] in {'same','random'} and j.get('identityMethod')!='real-front-v1':
+   if j['kind'] in {'same','random'} and j.get('identityMethod') not in {'real-front-v1',SCHEME_METHOD}:
     j['prompt']='根据已保存的人物参考保持同一人的五官长相；最后一张只作场景参考。'+scene['style']+accessory_prompt(j,j.get('accessories',[]))+NATURAL_CAPTURE.replace('真实正面原照','已保存人物参考')
    save_job(j)
   if j['kind'] not in {'profile','face','view'}:
@@ -342,7 +357,7 @@ def execute(jid):
        if not valid:
         s['status']='failed';s['providerFailed']=True;s['error']='这张图不是合格的面部特写，已退回该张积分，请重试';save_job(j);continue
        s['framingChecked']=True
-      if j.get('accessoryPolicy'):
+      if j.get('accessoryPolicy') or j.get('identityMethod')==SCHEME_METHOD:
        s['phase']='checking_accessories';save_job(j)
        try:valid=accessories_match(data,j)
        except Exception:s['status']='failed';s['providerFailed']=True;s['error']='配饰检查暂不可用，已退回该张积分';save_job(j);continue
@@ -404,7 +419,7 @@ def create_job(owner,q,catalog):
   with db() as c:old=c.execute('SELECT data FROM jobs WHERE owner=? AND request_key=?',(owner,key)).fetchone()
   if old:return json.loads(old[0])
   p=read_profile(owner)
-  if not p['photos']:raise UserError('先上传自己的照片，建立形象库')
+  if not p['photos'] and q.get('kind') in {'profile','view'}:raise UserError('先上传自己的照片，建立形象库')
   history=jobs(owner)
   with db() as c:daily=c.execute('SELECT COUNT(*) FROM jobs WHERE created>?',(time.time()-86400,)).fetchone()[0]
   if daily>=int(os.getenv('OOTD_GLOBAL_DAILY_JOBS','100')):raise UserError('今日生图服务额度已用完，请稍后再试')
@@ -434,12 +449,12 @@ def create_job(owner,q,catalog):
    names={'front':'正面全身','side':'侧面全身','back':'背面全身','face':'面部特写'}
    j['slots']=[{'key':q['view'],'label':names[q['view']],'status':'queued'}]
   else:
-   j['identityViews']={k:p['views'][k] for k in ('face','front','side','back')}
-   j['accessorySourcePhotos']=p['photos'][:]
+   if any(not isinstance(p['views'].get(k),str) or not p['views'][k] for k in IDENTITY_VIEW_ORDER):raise UserError('请先完成正面、侧面、背面和面部特写四张形象参考')
+   j['identityViews']={k:p['views'][k] for k in IDENTITY_VIEW_ORDER}
    j['identityScheme']=p.get('selectedScheme');j['identitySummary']=p.get('summary') or {}
-   j['realIdentityPhoto']=p.get('identityPhoto') if p.get('identityPhoto') in p['photos'] else p['photos'][0]
-   j['identityMethod']='real-front-v1';j['reviewVersion']=1
-   j['photos']=[j['realIdentityPhoto'],p['views']['front']]
+   j['identityMethod']=SCHEME_METHOD;j['reviewVersion']=1
+   j['accessories']=accessory_rules(j,j['identitySummary'].get('accessories',[]))
+   j['photos']=[j['identityViews'][k] for k in IDENTITY_VIEW_ORDER]
    j['referenceAsset']=store_asset(owner,remote_image(ref['image']));j['reference']={'id':ref['id'],'title':ref['title'],'asset':j['referenceAsset']}
    if ref.get('width',0)>ref.get('height',1):j['size']='1152x864'
    j['slots']=[{'key':str(i),'label':'照片 '+str(i),'status':'queued'} for i in (1,2)]
