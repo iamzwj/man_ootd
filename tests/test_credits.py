@@ -86,4 +86,12 @@ class CreditsTests(unittest.TestCase):
     c.execute('BEGIN IMMEDIATE');p.reserve_credits(c,{'id':'bad','owner':'one'},[{'key':'1'}]);raise ValueError()
   self.assertEqual(p.credit_balance('one')['remaining'],10)
 
+
+ def test_more_than_two_pending_groups_allowed_with_atomic_credits(self):
+  jobs=[self.make(key='queued-'+str(i)) for i in range(5)]
+  self.assertEqual(len({j['id'] for j in jobs}),5)
+  self.assertTrue(all(j['status']=='queued' for j in jobs))
+  self.assertEqual(p.credit_balance('one')['remaining'],0)
+  with self.assertRaisesRegex(p.UserError,'积分不足'):self.make(key='sixth')
+
 if __name__=='__main__':unittest.main()

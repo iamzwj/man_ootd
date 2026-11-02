@@ -94,4 +94,11 @@ class PersonalTests(unittest.TestCase):
  def test_model_ids_and_protocol(self):
   with patch.object(p,'api',return_value={'data':{'id':'123'}}) as api:self.assertEqual(p.submit_image('prompt',['data:image/jpeg;base64,abc'],'864x1152'),'123')
   self.assertEqual(api.call_args.args[0],'/v1/api/generate');self.assertEqual(api.call_args.args[1]['model'],'gpt-image-2');self.assertEqual(api.call_args.args[1]['replyType'],'async')
+
+ def test_queue_wait_does_not_consume_generation_timeout(self):
+  self.ready();j=self.make('same',referenceId='ref');j['prompt']='saved prompt';j['created']=time.time()-4000;p.save_job(j)
+  success={'status':'succeeded','results':[{'url':'https://example.com/out.jpg'}]}
+  with patch.object(p,'submit_image',side_effect=['a','b']),patch.object(p,'api',side_effect=[{'status':'running'},{'status':'running'},success,success]),patch.object(p,'remote_image',return_value=self.img),patch.object(p.time,'sleep') as sleep:p.execute(j['id'])
+  done=p.load_job(j['id']);self.assertEqual(done['status'],'succeeded');self.assertGreater(done['pollDeadline'],time.time());sleep.assert_called_once()
+
 if __name__=='__main__':unittest.main()

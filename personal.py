@@ -216,6 +216,7 @@ def face_is_closeup(data):
 def execute(jid):
  j=load_job(jid)
  try:
+  j.setdefault('started',time.time());save_job(j)
   p=read_profile(j['owner']);images=[data_uri(j['owner'],u) for u in j['photos'][:12]]
   if not j.get('prompt'):
    j['stage']='分析形象' if j['kind'] in {'profile','face','view'} else '分析参考照片';save_job(j)
@@ -257,7 +258,7 @@ def execute(jid):
    except UnknownSubmission as e:s['status']='uncertain';s['error']=str(e);save_job(j)
    except UserError as e:s['status']='failed';s['error']=str(e);save_job(j)
    except Exception:s['status']='uncertain';s['error']='提交连接中断，结果状态未知，未自动重复提交';save_job(j)
-  deadline=j.setdefault('pollDeadline',j['created']+900);save_job(j)
+  deadline=j.setdefault('pollDeadline',j['started']+900);save_job(j)
   while True:
    pending=[s for s in j['slots'] if s.get('providerId') and not s.get('asset') and s.get('status') not in {'failed','uncertain'}]
    if not pending:break
@@ -332,7 +333,6 @@ def create_job(owner,q,catalog):
   p=read_profile(owner)
   if not p['photos']:raise UserError('先上传自己的照片，建立形象库')
   history=jobs(owner)
-  if sum(j['status'] not in TERMINAL for j in history)>=2:raise UserError('已有两个任务进行中，请完成后再生成')
   with db() as c:daily=c.execute('SELECT COUNT(*) FROM jobs WHERE created>?',(time.time()-86400,)).fetchone()[0]
   if daily>=int(os.getenv('OOTD_GLOBAL_DAILY_JOBS','100')):raise UserError('今日生图服务额度已用完，请稍后再试')
   if not os.getenv('GRSAI_API_KEY'):raise UserError('生图服务尚未配置')
