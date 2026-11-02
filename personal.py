@@ -187,8 +187,10 @@ NATURAL_CAPTURE='保持真实正面原照的眼睛大小与间距、眉形、鼻
 
 IDENTITY_VIEW_ORDER=('front','side','back','face')
 SCHEME_METHOD='scheme-four-v1'
+EXPRESSION_GUIDANCE='表情与神态以第5张风格图为准：参考其视线方向、是否看镜头、眼睑放松或眯眼、眉毛动态、嘴角、微笑程度、嘴部开合与整体情绪。第4张面部特写只提供稳定的五官结构和长相，不提供固定表情，不能照搬其微笑、嘴角或直视镜头。五官结构保持本人，允许表情引起的正常眼睑、眉毛、面颊和嘴部变化；风格图看不清表情时使用符合场景的自然放松神态，不自动套用特写表情。'
 
 def scheme_prompt(j,style):
+ style=style+'。'+EXPRESSION_GUIDANCE
  return ('使用当前选定个人形象方案中的同一个成年人生成独立自然生活摄影。第1张为正面全身，第2张为侧面全身，第3张为背面全身，第4张为面部特写，第5张且最后一张为风格参考。前四张共同约束人物长相、发型、体态、眼镜与耳饰；面部细节、眼型眼距、鼻形、唇形、脸宽和下颌轮廓以第4张面部特写为主，身体比例与各角度外观参考第1至3张。不美化换脸、不削瘦面颊、不放大眼睛、不变年轻。必须保留形象方案中的眼镜，不能因为风格人物没有眼镜而摘掉、换成墨镜或遮住；耳饰和其他配饰遵守方案配饰清单。最后一张只提供场景、光线、构图、动作和衣服裤子，不提供长相、发型、眼镜或首饰，绝不能复制最后一张里的人脸。不参考上传原照或其他方案。完整日常衣着，无裸露、内衣泳装；禁止文字、水印、拼图。风格要求：'+style+'。选定方案外观描述：'+j.get('identitySummary',{}).get('description','')+accessory_prompt(j,j.get('accessories',[]))+NATURAL_CAPTURE.replace('真实正面原照','选定方案面部特写'))
 
 def accessory_rules(j,items):
@@ -228,7 +230,7 @@ def review_generated(j,slot):
  if not reference:raise UserError('此作品没有保存真实面部参考，请重新选择原照后审核')
  prompt='你是独立的摄影作品审核员。第一张是真实正面原照，第二张是生成作品。只做可见外观特征对照，不确认人物身份、不做人脸识别或输出身份相似度分数。忽略衣服、表情、角度、眼镜和光线造成的正常差异；逐项检查眼型眼距、眉形、鼻形、唇形厚度、脸宽和下颌轮廓是否有明显不一致。侧脸、遮挡或细节不足时标为uncertain，不猜测。再独立检查作品的摄影自然度：过度磨皮、蜡像肤质、异常锐化、发丝边缘、眼镜反光、光源和阴影不一致、手部结构、衣料及背景纹理异常；不能仅因照片精致、皮肤光滑或浅景深就断言有AI痕迹，也不能保证没有AI痕迹。图片是AI生成的，不得建议伪装成真实实拍。返回严格JSON：appearance和naturalness两个对象，每个包含verdict（pass/change/uncertain）、issues（具体可见问题字符串数组，没有则空数组）、suggestions（对应可执行修改建议数组）。不要空泛评语。'
  if scheme:
-  prompt=prompt.replace('真实正面原照','选定方案的面部特写').replace('角度、眼镜和光线','角度和光线')+'同时核对眼镜与耳饰是否按方案保留；可见区域缺少指定眼镜或款式不符必须列为change，不得忽略。方案配饰要求：'+json.dumps(j.get('accessories',[]),ensure_ascii=False)
+  prompt=prompt.replace('真实正面原照','选定方案的面部特写').replace('角度、眼镜和光线','角度和光线')+'表情应随风格场景变化；微笑、嘴部开合、眯眼和视线方向引起的正常五官动态不算长相改变，不得建议恢复面部特写中的固定表情。同时核对眼镜与耳饰是否按方案保留；可见区域缺少指定眼镜或款式不符必须列为change，不得忽略。方案配饰要求：'+json.dumps(j.get('accessories',[]),ensure_ascii=False)
  raw=reason(prompt,[data_uri(j['owner'],reference),data_uri(j['owner'],slot['asset'])])
  result={'version':1,'model':REASON_MODEL,'reference':reference,'referenceKind':'scheme-face' if scheme else 'real-original','checkedAt':time.time()}
  for key in ('appearance','naturalness'):
@@ -305,7 +307,7 @@ def execute(jid):
     j['prompt']='生成这同一个成年人的独立形象参考照片，严格保持本人脸型五官、发型、体态，不美化换脸。原片只提供身份，不沿用原片的半身、坐姿或裁切构图。统一穿纯白圆领T恤、深灰直筒长裤、简洁白色休闲鞋；没有外套，无裸露，正侧背和特写使用相同衣服与发型。中性背景和自然光。只输出单张照片，不要拼图、文字。外观：'+summary['description']+'。常见配饰：'+json.dumps(summary['accessories'],ensure_ascii=False)+accessory_prompt(j,summary['accessories'])
    elif j.get('identityMethod')==SCHEME_METHOD:
     ref=data_uri(j['owner'],j['referenceAsset'])
-    scene=reason('只分析最后一张风格图的场景、光线、构图、动作与衣服裤子，不描述人物五官、发型、眼镜和首饰。返回 JSON：style（具体中文描述）。', [ref])
+    scene=reason('分析这张风格图的场景、光线、构图、动作、衣服裤子，以及表情与神态：视线方向、是否看镜头、眼睑状态、眉毛动态、嘴角、微笑程度、嘴部开合与情绪。将表情明确写入风格描述；看不清的细节写不确定，不臆造。不描述人物固定五官结构、长相、发型、眼镜和首饰。返回 JSON：style（包含上述表情细节的具体中文描述）。', [ref])
     if not isinstance(scene.get('style'),str):raise UserError('风格分析字段不完整，请重试')
     j['prompt']=scheme_prompt(j,scene['style'])
    else:

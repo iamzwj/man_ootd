@@ -24,6 +24,7 @@ class ReviewTests(unittest.TestCase):
   face=p.store_asset('owner',p.asset('owner',self.original));j={**self.job,'identityMethod':p.SCHEME_METHOD,'identityViews':{'face':face},'accessories':['黑框眼镜']}
   with patch.object(p,'reason',return_value=self.raw()) as reason:r=p.review_generated(j,j['slots'][0])
   self.assertEqual(reason.call_args.args[1][0],p.data_uri('owner',face));self.assertIn('可见区域缺少指定眼镜',reason.call_args.args[0]);self.assertEqual(r['referenceKind'],'scheme-face')
+  self.assertIn('不得建议恢复面部特写中的固定表情',reason.call_args.args[0])
  def package(self,**change):return p.publishing_package('owner',{'id':'job-review','slot':'1','platform':'xiaohongshu','confirmed':True,'title':'窗边','caption':'光影记录',**change})
  def test_package_contains_only_result_and_copy_with_ai_label(self):
   with zipfile.ZipFile(io.BytesIO(self.package())) as z:
