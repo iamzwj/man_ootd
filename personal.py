@@ -498,7 +498,15 @@ def remove_photo(owner,url):
 
 def public_job(j):
  result={k:v for k,v in j.items() if k not in {'owner','photos','prompt','revision','referenceAsset','requestKey','accessorySourcePhotos'}}
- result['slots']=[s for s in j['slots'] if not s.get('deleted')]
+ result['slots']=[s for s in j['slots'] if not s.get('deleted') and (j['status'] not in TERMINAL or s.get('asset') or s.get('status')=='uncertain')]
+ return result
+
+def public_jobs(owner):
+ # Empty finished results disappear on refresh; durable jobs and credit records remain for reconciliation.
+ result=[]
+ for j in jobs(owner):
+  visible=public_job(j)
+  if visible['slots'] or j['status'] not in TERMINAL:result.append(visible)
  return result
 
 def delete_works(owner,items):
@@ -553,7 +561,7 @@ def handle(h,catalog):
   h.end_headers();h.wfile.write(body)
  try:
   if h.command=='GET':
-   if path=='/api/personal':send(200,{'credits':credit_balance(owner) if login else None,'authenticated':bool(login),'user':{'email':login['email']} if login else None,'loginConfigured':email_auth.configured(),'profile':read_profile(owner) if login else {'photos':[],'views':{},'summary':None},'jobs':[public_job(j) for j in jobs(owner)] if login else [],'configured':bool(os.getenv('GRSAI_API_KEY')),'imageModel':IMAGE_MODEL,'reasonModel':REASON_MODEL})
+   if path=='/api/personal':send(200,{'credits':credit_balance(owner) if login else None,'authenticated':bool(login),'user':{'email':login['email']} if login else None,'loginConfigured':email_auth.configured(),'profile':read_profile(owner) if login else {'photos':[],'views':{},'summary':None},'jobs':public_jobs(owner) if login else [],'configured':bool(os.getenv('GRSAI_API_KEY')),'imageModel':IMAGE_MODEL,'reasonModel':REASON_MODEL})
    elif path.startswith('/api/personal/assets/'):
     if not login:raise email_auth.AuthError('请先登录',401)
     send(200,raw=asset(owner,path))

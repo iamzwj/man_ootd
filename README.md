@@ -50,6 +50,8 @@ ELLEMEN 公开摄影组图、360 图片搜索、必应国内站点搜索、图�
 
 ## Personal appearance generation contract
 
+Refreshing the personal workspace automatically removes empty or failed finished results from the visible task list, including failed slots in partially completed jobs. Generated images, running/queued jobs and uncertain submissions remain visible. Stored task and credit records remain intact for billing, reconciliation and idempotency.
+
 New same-style and random jobs snapshot exactly four images from the selected scheme, ordered front, side, back, face close-up. The fifth input is the selected style image. Uploaded originals and standalone accessory photos are not sent for these jobs. The face close-up governs facial detail; scheme views govern hair, physique, eyewear and earrings; the style image governs clothing, scene, lighting, composition and pose. Accessories come from the frozen scheme summary and policy, with a visible-accessory check before accepting results. Reviews compare against the saved scheme face close-up. Historical jobs retain their original input method and retry snapshots.
 
 点击“选择删除”后，成图右上角显示选择圆圈，点击图片或圆圈切换选中状态；点击“删除（数量）”确认删除，或点击“取消选择”退出。未选中时不能删除。生成或审核中的所选作品暂不能删除，失败时保留选择并显示原因。
