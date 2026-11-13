@@ -129,6 +129,15 @@ class DomesticContinuousTests(unittest.TestCase):
   with patch.object(server,'catalog_rows',return_value=[]),patch.object(server,'remember_photos'),patch.object(server,'so_photos',return_value=([],True)):
    result=server.discover('photo','电影人像',999)
    self.assertEqual(result['nextCursor'],1000);self.assertTrue(result['hasMore']);self.assertEqual(result['items'],[])
+ def test_scroll_does_not_skip_unscheduled_search_when_pool_is_full(self):
+  active={('other',str(i)):server.cf.Future() for i in range(6)}
+  with patch.object(server,'ACTIVE_SEARCHES',active),patch.object(server,'catalog_rows',return_value=[]):
+   result=server.discover('photo','电影人像',5,set())
+   self.assertEqual(result['nextCursor'],5)
+   self.assertTrue(result['hasMore'])
+  with patch.object(server,'ACTIVE_SEARCHES',{}),patch.object(server,'catalog_rows',return_value=[]),patch.object(server,'remember_photos'),patch.object(server,'so_photos',return_value=([],True)),patch.object(server,'bing_photos',return_value=([],True)):
+   result=server.discover('photo','电影人像',5,set())
+   self.assertEqual(result['nextCursor'],6)
  def test_editorial_extractor_ignores_navigation_and_recommendations(self):
   image='https://hips.hearstchina.com/hmg-prod/images/'
   text='<div><img src="'+image+'outside.jpg"><div class="article-body-content"><div><img src="'+image+'one.jpg?resize=1200:*"></div><img src="'+image+'two.jpg"></div><img src="'+image+'recommendation.jpg"></div>'

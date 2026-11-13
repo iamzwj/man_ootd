@@ -40,9 +40,9 @@ class PersonalTests(unittest.TestCase):
   j=self.make();j['slots'][0]['status']='submitting';p.save_job(j)
   with patch.object(p,'launch') as launch:p.resume()
   self.assertEqual(p.load_job(j['id'])['slots'][0]['status'],'uncertain');launch.assert_called_once()
- def test_random_only_given_page(self):
+ def test_random_generation_is_disabled(self):
   self.ready()
-  with self.assertRaises(p.UserError):self.make('random',referenceIds=['not-on-page'])
+  with self.assertRaisesRegex(p.UserError,'任务类型无效'):self.make('random',referenceIds=['ref'])
  def test_missing_provider_id_is_uncertain(self):
   with patch.object(p,'api',return_value={'status':'accepted'}):
    with self.assertRaises(p.UnknownSubmission):p.submit_image('prompt',[],'864x1152')

@@ -1,6 +1,6 @@
 # Project Memory
 
-- Generating works keeps the current page and scroll position. A bottom-right notice aggregates concurrently submitted work jobs, retains the original image denominator through response filtering, and provides explicit navigation to works. Restore active jobs after refresh; do not replay historical completion notices.
+- Generating works keeps the current page and scroll position. The workspace navigation shows aggregate image progress while jobs are active and retains the original image denominator through response filtering. Restore active jobs after refresh. My Works only displays images with completed assets.
 
 - Expression, gaze, smile, mouth opening and mood follow the style image. The scheme face close-up anchors stable facial structure only, not a fixed expression. Extract expressions during style analysis and allow their normal facial changes during review.
 

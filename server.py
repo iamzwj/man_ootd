@@ -525,6 +525,7 @@ def discover(channel,category,cursor,exclude=None):
   specs += [('堆糖',duitang,(j,cursor)) for j in plan('photo',category,cursor)]
   specs += [('图虫',tuchong,('photo',category,cursor))]
  tasks={}
+ scheduled=True
  with LOCK:
   for name,fn,args in specs:
    key=(name,str(args))
@@ -532,6 +533,7 @@ def discover(channel,category,cursor,exclude=None):
    if key not in ACTIVE_SEARCHES and sum(not f.done() for f in ACTIVE_SEARCHES.values())<6:
     ACTIVE_SEARCHES[key]=POOL.submit(collect,fn,args)
    if key in ACTIVE_SEARCHES:tasks[ACTIVE_SEARCHES[key]]=name
+   else:scheduled=False
   for key in list(ACTIVE_SEARCHES):
    if len(ACTIVE_SEARCHES)>96 and ACTIVE_SEARCHES[key].done():del ACTIVE_SEARCHES[key]
  existing=([p for p in catalog_rows(category) if p['id'] not in exclude][:24] if exclude is not None else seed_photos(category,cursor))
@@ -544,11 +546,14 @@ def discover(channel,category,cursor,exclude=None):
   for p in batch:
    if approved_photo(p):result[p['id']]=p
  # Include newly completed catalog entries from other searches, in stable page order.
- for p in seed_photos(category,cursor):result[p['id']]=p
- rows=([p for p in catalog_rows(category) if p['id'] not in exclude][:24] if exclude is not None else list(result.values()))
- more=True
- return {'items':rows,'nextCursor':cursor+1,'hasMore':more,'sourceAvailable':True,'searchAvailable':any(s['available'] for s in statuses.values()),
-  'sources':list(statuses.values()),'catalogCount':len(catalog_rows(category)),'photographerCount':len({p.get('sourceId') or p.get('source') for p in catalog_rows('全部')}),
+ catalog=catalog_rows(category)
+ if exclude is None:
+  for p in catalog[cursor*24:(cursor+1)*24]:result[p['id']]=p
+ rows=([p for p in catalog if p['id'] not in exclude][:24] if exclude is not None else list(result.values()))
+ # The scroll feed must revisit a page if the worker limit prevented scheduling a source.
+ next_cursor=cursor+1 if scheduled or exclude is None else cursor
+ return {'items':rows,'nextCursor':next_cursor,'hasMore':True,'sourceAvailable':True,'searchAvailable':any(s['available'] for s in statuses.values()),
+  'sources':list(statuses.values()),'catalogCount':len(catalog),'photographerCount':len({p.get('sourceId') or p.get('source') for p in catalog_rows('全部')}),
   'mode':'live','checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
 
 class Handler(BaseHTTPRequestHandler):

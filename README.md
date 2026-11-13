@@ -4,7 +4,7 @@
 
 ELLEMEN 公开摄影组图、360 图片搜索、必应国内站点搜索、图虫与堆糖持续按真实搜索页推进。新候选下载到内存，CLIP 比较成年男性穿衣肖像与女性、裸体、赤膊、内衣、儿童、插画等负例，符合者标记 automated-screened，不冒充人工审核。自动判断不能保证零误判；移除操作保存在当前设备。
 
-每次下滑继续发现新图，搜索游标始终递增，浏览指纹去重，不循环末页填充。不保证来源无限、每页有新结果或平台永久可访问；遇到空页按递增延时自动推进下一搜索页；离开底部或标签页隐藏时停止自动请求。请求携带已浏览/已返回图片 ID，后台从当前合格图库中取未读图片，避免异步晚到图片被页码切片跳过。
+每次下滑继续发现新图，搜索按页推进，来源繁忙时保留当前搜索页，浏览指纹去重，不循环末页填充。不保证来源无限、每页有新结果或平台永久可访问；遇到空页按递增延时自动推进下一搜索页；离开底部或标签页隐藏时停止自动请求。请求携带本次已加载及已隐藏图片 ID，后台从当前合格图库中取未读图片，避免异步晚到图片被页码切片跳过。
 
 旧海外图库不进入本版推荐，缓存命名空间升级。灵感发现部分仅持久化 URL 和筛选元数据，最多 2000 条运行缓存；浏览器图片缓存上限 80。
 
@@ -21,7 +21,7 @@ ELLEMEN 公开摄影组图、360 图片搜索、必应国内站点搜索、图�
 
 登录后才能上传照片、访问私人照片、整理形象或生图。账户、会话和验证码存入私有 SQLite，验证码和会话令牌只保存摘要，Cookie 设置 HttpOnly、SameSite=Lax，线上使用 Secure。同一邮箱跨设备登录可访问同一形象库；既有匿名形象库可在首次验证当前浏览器邮箱时归入账户。
 
-模型为 `gpt-image-2` 生图、`gpt-5.6-terra` 视觉推理（low reasoning effort），通过 GRsai 调用。形象库包含四张独立图片：正面全身、侧面全身、背面全身和面部特写，以及可见穿戴配饰的总结。三视图统一中性服装和全身取景；缺失角度属于 AI 补全参考，不保证还原未提供的真实细节。做同款和随机生成均为两张独立图片，随机仅从请求中当前页面的合格参考 ID 选择。
+模型为 `gpt-image-2` 生图、`gpt-5.6-terra` 视觉推理（low reasoning effort），通过 GRsai 调用。形象库包含四张独立图片：正面全身、侧面全身、背面全身和面部特写，以及可见穿戴配饰的总结。三视图统一中性服装和全身取景；缺失角度属于 AI 补全参考，不保证还原未提供的真实细节。做同款生成两张独立图片。
 
 私有原片和生成结果保存在 `OOTD_PERSONAL_PATH`（线上为 `/var/lib/ootd-photo/personal`），可在界面删除。灵感缓存与个人图片分开，Service Worker 不缓存私人照片。任务与上游任务 ID 持久化，刷新和服务重启后继续查询；成功图片独立保留，提交结果不明时不自动重复发送。
 
@@ -30,7 +30,7 @@ ELLEMEN 公开摄影组图、360 图片搜索、必应国内站点搜索、图�
 
 ## 每日图片积分
 
-每个邮箱账户每天 10 积分，北京时间（UTC+8）每天 0 点恢复至 10，不累积。1 积分对应一张图片；整理四张形象参考预留 4 分，做同款和随机生成分别预留 2 分。扣分在服务器 SQLite 事务内完成，重复请求不重复扣分，并发请求不能透支。成功图片按张结算，确定失败及分析失败的图片自动退回；提交状态未知或任务仍可能完成时保留冻结，后续查询同一任务不再次扣分。重试已退分的失败图片才重新预留积分。跨日退分仅冲回原记账日，不增加次日额度；删除照片或历史记录不会清除积分账本。积分规则生效前的已有任务不补扣。
+每个邮箱账户每天 10 积分，北京时间（UTC+8）每天 0 点恢复至 10，不累积。1 积分对应一张图片；整理四张形象参考预留 4 分，做同款预留 2 分。扣分在服务器 SQLite 事务内完成，重复请求不重复扣分，并发请求不能透支。成功图片按张结算，确定失败及分析失败的图片自动退回；提交状态未知或任务仍可能完成时保留冻结，后续查询同一任务不再次扣分。重试已退分的失败图片才重新预留积分。跨日退分仅冲回原记账日，不增加次日额度；删除照片或历史记录不会清除积分账本。积分规则生效前的已有任务不补扣。
 
 特殊邮箱的每日额度可由服务端私有数据库 `account_credit_limits` 配置；按已验证账户邮箱匹配，首次注册后同样生效。未配置的账户仍为每日 10 分，页面跟随服务器返回的额度显示，不在公开代码中列出特殊邮箱。
 
@@ -56,8 +56,8 @@ Expressions follow the style image: gaze direction, smile, mouth opening, eyelid
 
 Refreshing the personal workspace automatically removes empty or failed finished results from the visible task list, including failed slots in partially completed jobs. Generated images, running/queued jobs and uncertain submissions remain visible. Stored task and credit records remain intact for billing, reconciliation and idempotency.
 
-New same-style and random jobs snapshot exactly four images from the selected scheme, ordered front, side, back, face close-up. The fifth input is the selected style image. Uploaded originals and standalone accessory photos are not sent for these jobs. The face close-up governs facial detail; scheme views govern hair, physique, eyewear and earrings; the style image governs clothing, scene, lighting, composition and pose. Accessories come from the frozen scheme summary and policy, with a visible-accessory check before accepting results. Reviews compare against the saved scheme face close-up. Historical jobs retain their original input method and retry snapshots.
+New same-style jobs snapshot exactly four images from the selected scheme, ordered front, side, back, face close-up. The fifth input is the selected style image. Uploaded originals and standalone accessory photos are not sent for these jobs. The face close-up governs facial detail; scheme views govern hair, physique, eyewear and earrings; the style image governs clothing, scene, lighting, composition and pose. Accessories come from the frozen scheme summary and policy, with a visible-accessory check before accepting results. Reviews compare against the saved scheme face close-up. Historical jobs retain their original input method and retry snapshots.
 
 点击“选择删除”后，成图右上角显示选择圆圈，点击图片或圆圈切换选中状态；点击“删除（数量）”确认删除，或点击“取消选择”退出。未选中时不能删除。生成或审核中的所选作品暂不能删除，失败时保留选择并显示原因。
 
-接口 `POST /api/personal/works/delete` 接收 `{"items":[{"id":"job-id","slot":"slot-key"}]}`，仅删除当前登录账户的做同款/随机生成作品。整批校验后执行，保留形象库、任务及积分账本，删除不会退分或重新生成已删除成图。未被其他视图或任务引用的图片文件同步移除。
+接口 `POST /api/personal/works/delete` 接收 `{"items":[{"id":"job-id","slot":"slot-key"}]}`，仅删除当前登录账户的生成作品（含历史随机作品）。整批校验后执行，保留形象库、任务及积分账本，删除不会退分或重新生成已删除成图。未被其他视图或任务引用的图片文件同步移除。

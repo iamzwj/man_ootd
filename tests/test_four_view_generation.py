@@ -4,10 +4,10 @@ from test_personal import PersonalTests
 import personal as p
 
 class FourViewGenerationTests(PersonalTests):
- def test_random_uses_only_frozen_scheme_and_style_without_original_accessories(self):
+ def test_same_uses_only_frozen_scheme_and_style_without_original_accessories(self):
   self.ready();profile=p.read_profile(self.owner)
   profile['views']={k:p.store_asset(self.owner,self.img) for k in p.IDENTITY_VIEW_ORDER};profile['summary']={'description':'当前方案','accessories':['黑框透明镜片眼镜','银色耳环']};p.save_profile(self.owner,profile)
-  j=self.make('random',referenceIds=['ref'])
+  j=self.make('same',referenceId='ref')
   self.assertEqual(j['identityMethod'],p.SCHEME_METHOD);self.assertNotIn('accessorySourcePhotos',j);self.assertNotIn('realIdentityPhoto',j)
   with patch.object(p,'reason',return_value={'style':'普通街头'}) as reason,patch.object(p,'submit_image',side_effect=['a','b']) as submit,patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/out.jpg'}]}),patch.object(p,'remote_image',return_value=self.img):p.execute(j['id'])
   self.assertEqual(reason.call_count,1);self.assertEqual(len(reason.call_args.args[1]),1)

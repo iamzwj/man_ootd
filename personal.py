@@ -339,6 +339,8 @@ def resume():
 
 
 def create_job(owner,q,catalog):
+ kind=q.get('kind')
+ if kind not in {'profile','view','same'}:raise UserError('任务类型无效')
  key=q.get('requestKey','')
  if not isinstance(key,str) or not 12<=len(key)<=100:raise UserError('请求编号无效，请重新点击')
  with GUARD:
@@ -350,8 +352,6 @@ def create_job(owner,q,catalog):
   with db() as c:daily=c.execute('SELECT COUNT(*) FROM jobs WHERE created>?',(time.time()-86400,)).fetchone()[0]
   if daily>=int(os.getenv('OOTD_GLOBAL_DAILY_JOBS','100')):raise UserError('今日生图服务额度已用完，请稍后再试')
   if not os.getenv('GRSAI_API_KEY'):raise UserError('生图服务尚未配置')
-  kind=q.get('kind')
-  if kind not in {'profile','view','same','random'}:raise UserError('任务类型无效')
   if kind in {'profile','view'} and any(j['status'] not in TERMINAL and j['kind'] in {'profile','face','view'} for j in history):raise UserError('请等待当前形象生成完成')
   required=4 if kind=='profile' else 1 if kind=='view' else 2
   if kind=='view' and q.get('view') not in {'front','side','back','face'}:raise UserError('视图无效')
@@ -360,11 +360,8 @@ def create_job(owner,q,catalog):
   if kind not in {'profile','face','view'}:
    if not p.get('summary') or len(p.get('views',{}))<4:raise UserError('请先完成形象库整理，再生成个人照片')
    if 'schemeId' in q and q['schemeId']!=p.get('selectedScheme'):raise UserError('形象方案已变更，请确认所选方案后重新生成')
-   candidates=q.get('referenceIds',[]) if kind=='random' else [q.get('referenceId')]
-   if not isinstance(candidates,list) or len(candidates)>500:raise UserError('参考图片无效')
-   candidate_ids={x for x in candidates if isinstance(x,str)};available=[r for r in catalog if r['id'] in candidate_ids]
-   if not available:raise UserError('当前照片参考已过期，请刷新后重试')
-   ref=secrets.choice(available)
+   ref=next((r for r in catalog if r['id']==q.get('referenceId')),None)
+   if ref is None:raise UserError('当前照片参考已过期，请刷新后重试')
   jid=secrets.token_hex(16);j={'id':jid,'owner':owner,'requestKey':key,'kind':kind,'revision':p.get('revision'),'photos':p['photos'][:],'accessoryPolicy':p.get('accessoryPolicy',{}), 'status':'queued','stage':'排队中','created':time.time(),'slots':[],'size':'864x1152'}
   if kind=='profile':
    j['size']='1024x1536'
