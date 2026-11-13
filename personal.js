@@ -95,7 +95,9 @@ function image(url,alt,preview=false){const img=node('img');img.src=url;img.alt=
 function previewImage(url,alt){const dialog=$('#personalPreview'),img=$('#personalPreviewImage'),status=$('#personalPreviewStatus');status.hidden=false;status.textContent='正在打开图片…';img.onload=()=>{status.hidden=true};img.onerror=()=>{status.hidden=false;status.textContent='图片暂时无法加载，请关闭后重试'};img.alt=alt;img.src=url;if(!dialog.open)dialog.showModal()}
 function panes(){const logged=!!state.authenticated;$('#loginPane').hidden=logged;$('#personalTabs').hidden=!logged;$('#accountBar').hidden=!logged;$('#creditRule').hidden=!logged;$('#profilePane').hidden=!logged||activeTab!=='profile';$('#historyPane').hidden=!logged||activeTab!=='history';$('#profileTab').setAttribute('aria-selected',String(activeTab==='profile'));$('#historyTab').setAttribute('aria-selected',String(activeTab==='history'));$('#personalDialog').classList.toggle('login-only',!logged)}
 function open(tab='profile'){activeTab=tab;const d=$('#personalDialog');panes();if(!d.open)d.showModal()}
+let renderedState,renderedBusy;
 function render(){
+ renderedState=JSON.stringify(state);renderedBusy=busy;
  if(!state.authenticated&&$('#personalPreview')?.open)$('#personalPreview').close();panes();$('#accountEmail').textContent=state.user?.email||'';const credits=state.credits;$('#accountCredits').textContent=credits?'今日积分 '+credits.remaining+' / '+credits.limit:'';$('#accountCredits').title='每日北京时间 0 点恢复至 '+(credits?.limit??10)+' 积分';$('#creditRule').textContent='每日北京时间 0 点恢复至 '+(credits?.limit??10)+' 积分，不累积。1 积分生成 1 张图：形象库 4 分，做同款或随机生成 2 分。失败图片自动退分，状态未确认的图片暂时冻结积分。';
  const p=state.profile;$('#uploadCount').textContent=p.photos.length+'/12';$('#identityPhotos').replaceChildren(...p.photos.map((u,i)=>{const item=node('figure',null,'identity-photo');item.append(image(u,'原始照片 '+(i+1)));const remove=node('button','×','remove-photo');remove.type='button';remove.title='删除这张参考照片';remove.setAttribute('aria-label','删除原始照片 '+(i+1));remove.disabled=busy;remove.onclick=()=>action(()=>api('/photo/remove',{photo:u}));item.append(remove);const primary=u===(p.identityPhoto||p.photos[0]);const choose=node('button',primary?'面部参考 ✓':'用作面部参考','identity-primary');choose.disabled=busy||primary;choose.setAttribute('aria-label',(primary?'当前面部参考：':'设为面部参考：')+'原始照片 '+(i+1));choose.onclick=()=>action(()=>api('/photo/identity',{photo:u}));item.append(choose);return item}));
  $('#profileSummary').textContent=p.summary?.description||'上传清晰的正面、侧面及全身照，整理出你的个人形象。';
@@ -123,12 +125,16 @@ function render(){
 }
 function showWorks(){ $('#worksPane').hidden=false;$('#inspirationPane').hidden=true;$('#showWorks').classList.add('active');$('#showInspiration').classList.remove('active');$('#showWorks').setAttribute('aria-pressed','true');$('#showInspiration').setAttribute('aria-pressed','false');$('#personalDialog').close();window.scrollTo({top:0,behavior:'instant'}) }
 function showInspiration(){ $('#worksPane').hidden=true;$('#inspirationPane').hidden=false;$('#showWorks').classList.remove('active');$('#showInspiration').classList.add('active');$('#showWorks').setAttribute('aria-pressed','false');$('#showInspiration').setAttribute('aria-pressed','true');window.dispatchEvent(new Event('ootd:inspiration-open')) }
+let worksRenderKey;
 function renderWorks(){
  const list=$('#worksJobs');if(!list)return;
  const outputJobs=state.jobs.filter(j=>['same','random'].includes(j.kind));
  const available=new Set(outputJobs.flatMap(j=>j.slots.filter(s=>s.asset).map(s=>workKey(j,s))));
  selectedWorks=new Set([...selectedWorks].filter(key=>available.has(key)));
  if(!state.authenticated||!available.size){selectingWorks=false;selectedWorks.clear()}
+ const key=JSON.stringify([state.authenticated,state.user?.email,selectingWorks,outputJobs.map(j=>[j.id,j.slots.filter(s=>visibleSlot(j,s)).map(s=>[s.key,s.label,s.asset||null])]).filter(([,slots])=>slots.length)]);
+ if(key===worksRenderKey){renderWorkSelection();return}
+ worksRenderKey=key;
  list.replaceChildren();let count=0;
  for(const j of outputJobs){for(const s of j.slots.filter(s=>visibleSlot(j,s))){
   const card=node('article',null,'work-result');
@@ -151,7 +157,7 @@ function renderWorks(){
  $('#worksEmpty p').textContent=state.authenticated?'生成的照片会保存在这里':'登录后，在这里查看你生成的照片';$('#worksExplore').textContent=state.authenticated?'找张灵感，做我的同款':'邮箱登录';$('#worksExplore').onclick=()=>state.authenticated?showInspiration():open();
  renderWorkSelection();
 }
-async function refresh(force=false){if(polling){await polling;if(!force)return}polling=(async()=>{try{state=await api();render()}catch(e){if($('#personalDialog').open)message(e.message)}finally{polling=false}})();return polling}
+async function refresh(force=false){if(polling){await polling;if(!force)return}polling=(async()=>{try{state=await api();if(renderedBusy!==busy||renderedState!==JSON.stringify(state))render()}catch(e){if($('#personalDialog').open)message(e.message)}finally{polling=false}})();return polling}
 async function action(fn){if(busy)return;busy=true;message('');render();try{await fn()}catch(e){message(e.message)}finally{busy=false;await refresh()}}
 async function compressed(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('请选择 JPG、PNG 或 WebP 照片');if(file.size>12_000_000)throw Error('单张照片不能超过 12 MB');const bmp=await createImageBitmap(file,{imageOrientation:'from-image'});if(Math.min(bmp.width,bmp.height)<160){bmp.close();throw Error('照片短边至少需要 160 像素')}const ratio=Math.min(1,1600/Math.max(bmp.width,bmp.height));const canvas=document.createElement('canvas');canvas.width=Math.round(bmp.width*ratio);canvas.height=Math.round(bmp.height*ratio);canvas.getContext('2d').drawImage(bmp,0,0,canvas.width,canvas.height);bmp.close();return canvas.toDataURL('image/jpeg',.9)}
 async function generate(kind,reference){
