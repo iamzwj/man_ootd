@@ -120,3 +120,8 @@
  }
  .work-result:hover>.work-download,.work-result>.work-download:focus-visible{opacity:1;pointer-events:auto}
 }
+
+.work-placeholder{
+ display:grid;place-items:center;aspect-ratio:3/4;border-radius:10px;
+ background:#eceee6;color:var(--muted);
+}

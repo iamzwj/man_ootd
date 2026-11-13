@@ -154,15 +154,40 @@ let worksRenderKey;
 function renderWorks(){
  const list=$('#worksJobs');if(!list)return;
  const outputJobs=state.jobs.filter(j=>['same','random'].includes(j.kind));
- const available=new Set(outputJobs.flatMap(j=>j.slots.filter(s=>s.asset).map(s=>workKey(j,s))));
+ const orderedJobs=outputJobs.slice().sort((a,b)=>(b.workPosition??b.created)-(a.workPosition??a.created));
+ const pendingJobs=orderedJobs.filter(j=>j.workOrigin&&hasActiveSlots(j));
+ const replacements=new Map(pendingJobs.filter(j=>j.replacement).map(j=>[JSON.stringify([j.replacement.id,j.replacement.slot]),j]));
+ const cards=[];
+ const placed=new Set();
+ const addPending=job=>{
+  cards.push({job,pending:true});
+  placed.add(job.id);
+ };
+ for(const job of orderedJobs){
+  for(const slot of job.slots.filter(s=>s.asset)){
+   const key=workKey(job,slot);
+   if(replacements.has(key))addPending(replacements.get(key));
+   else cards.push({job,slot});
+   for(const pending of pendingJobs){
+    if(!pending.replacement&&pending.workOrigin.id===job.id&&pending.workOrigin.slot===slot.key)addPending(pending);
+   }
+  }
+ }
+ for(const job of pendingJobs)if(!placed.has(job.id))addPending(job);
+ const available=new Set(cards.filter(c=>c.slot).map(c=>workKey(c.job,c.slot)));
  selectedWorks=new Set([...selectedWorks].filter(key=>available.has(key)));
  if(!state.authenticated||!available.size){selectingWorks=false;selectedWorks.clear()}
- const key=JSON.stringify([state.authenticated,state.user?.email,selectingWorks,outputJobs.map(j=>[j.id,j.slots.filter(s=>s.asset).map(s=>[s.key,s.label,s.asset])]).filter(([,slots])=>slots.length)]);
+ const key=JSON.stringify([state.authenticated,state.user?.email,selectingWorks,cards.map(({job,slot})=>[job.id,slot?.key,slot?.asset])]);
  if(key===worksRenderKey){renderWorkSelection();return}
  worksRenderKey=key;
  list.replaceChildren();let count=0;
- for(const j of outputJobs){for(const s of j.slots.filter(s=>s.asset)){
+ for(const {job:j,slot:s,pending} of cards){
   const card=node('article',null,'work-result');
+  if(pending){
+   card.append(node('div','生成中','work-placeholder'));
+   list.append(card);
+   continue;
+  }
   count++;card.append(image(s.asset,'我的作品 · '+s.label,!selectingWorks,true));
   if(selectingWorks){
    const choose=node('button',null,'work-select');choose.type='button';choose.dataset.key=workKey(j,s);
@@ -172,17 +197,20 @@ function renderWorks(){
    const actions=node('div',null,'work-card-actions');
    const download=node('a','下载图片','work-download');
    download.href=s.asset;download.download='ootd-'+j.id+'-'+s.key+'.jpg';
-   const regenerate=node('button','重新生成，再来一张','work-regenerate');
-   regenerate.type='button';
-   regenerate.onclick=async()=>{
-    regenerate.disabled=true;
-    try{await generate(null,{sourceJob:j.id,slot:s.key})}
-    finally{regenerate.disabled=false}
-   };
-   actions.append(regenerate);card.append(download,actions);
+   for(const [label,replace] of [['重新生成',true],['再生一张',false]]){
+    const button=node('button',label,'work-regenerate');
+    button.type='button';
+    button.onclick=async()=>{
+     button.disabled=true;
+     try{await generate(null,{sourceJob:j.id,slot:s.key,replace})}
+     finally{button.disabled=false}
+    };
+    actions.append(button);
+   }
+   card.append(download,actions);
   }
   list.append(card);
- }}
+ }
  $('#worksCount').textContent=count?String(count):'';$('#worksEmpty').hidden=list.childElementCount>0;
  $('#worksEmpty p').textContent=state.authenticated?'生成的照片会保存在这里':'登录后，在这里查看你生成的照片';$('#worksExplore').textContent=state.authenticated?'找张灵感，做我的同款':'邮箱登录';$('#worksExplore').onclick=()=>state.authenticated?showInspiration():open();
  renderWorkSelection();

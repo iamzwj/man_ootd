@@ -89,6 +89,16 @@ def save_job(j):
  with db() as c:
   c.execute('BEGIN IMMEDIATE')
   c.execute('UPDATE jobs SET data=? WHERE id=?',(json.dumps(j,ensure_ascii=False),j['id']))
+  replacement=j.get('replacement')
+  if replacement and j['slots'][0].get('asset'):
+   row=c.execute('SELECT data FROM jobs WHERE id=? AND owner=?',(replacement['id'],j['owner'])).fetchone()
+   if row:
+    source=json.loads(row[0])
+    for slot in source['slots']:
+     if slot['key']==replacement['slot'] and not slot.get('deleted'):
+      slot['deleted']=True
+      c.execute('UPDATE jobs SET data=? WHERE id=?',(json.dumps(source,ensure_ascii=False),source['id']))
+      break
   for slot in j['slots']:
    if not slot.get('creditId'):continue
    if slot.get('asset'):state='charged'
@@ -258,7 +268,9 @@ def execute(jid):
     j['prompt']='根据已保存的人物参考保持同一人的五官长相；最后一张只作场景参考。'+scene['style']+accessory_prompt(j,j.get('accessories',[]))+NATURAL_CAPTURE.replace('真实正面原照','已保存人物参考')
    save_job(j)
   if j['kind'] not in {'profile','face','view'}:
-   images.extend(data_uri(j['owner'],u) for u in j.get('accessoryRefs',[]));images.append(data_uri(j['owner'],j['referenceAsset']))
+   images.extend(data_uri(j['owner'],u) for u in j.get('accessoryRefs',[]))
+   if j.get('resultReference'):images.append(data_uri(j['owner'],j['resultReference']))
+   images.append(data_uri(j['owner'],j['referenceAsset']))
   j['stage']='生成形象参考' if j['kind'] in {'profile','face','view'} else '生成个人照片';j['status']='running';save_job(j)
   # Submit independently and persist every upstream id before doing any further work.
   for i,s in enumerate(j['slots']):
@@ -375,6 +387,17 @@ def create_job(owner,q,catalog):
            'identityScheme','identitySummary','realIdentityPhoto','accessoryPolicy','accessoryRefs','accessories')
    j.update({field:source[field] for field in fields if field in source})
    j['kind']='same'
+   target={'id':source_id,'slot':slot['key']}
+   j['workOrigin']=target
+   j['prompt']=j['prompt'].split('。倒数第二张是要重做的成图',1)[0]
+   if q.get('replace') is True:
+    if source['status'] not in TERMINAL or source_id in ACTIVE or any(
+     other.get('replacement')==target and other['status'] not in TERMINAL for other in history
+    ):raise UserError('这张作品正在生成，请稍候')
+    j['replacement']=target
+    j['workPosition']=source.get('workPosition',source['created'])
+    j['resultReference']=slot['asset']
+    j['prompt']+='。倒数第二张是要重做的成图，参照其人物、服装和场景重新生成一张照片。最后一张仍是原始风格参考。'
    j['slots']=[{'key':slot['key'],'label':slot['label'],'status':'queued'}]
   elif kind=='profile':
    j['size']='1024x1536'
@@ -433,7 +456,7 @@ def remove_photo(owner,url):
   return profile
 
 def public_job(j):
- result={k:v for k,v in j.items() if k not in {'owner','photos','prompt','revision','referenceAsset','requestKey','accessorySourcePhotos'}}
+ result={k:v for k,v in j.items() if k not in {'owner','photos','prompt','revision','referenceAsset','requestKey','accessorySourcePhotos','resultReference'}}
  result['slots']=[s for s in j['slots'] if not s.get('deleted') and (j['status'] not in TERMINAL or s.get('asset') or s.get('status')=='uncertain')]
  return result
 
