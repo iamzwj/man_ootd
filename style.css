@@ -56,9 +56,30 @@
  .works-selection{top:142px}
 }
 
-#generationProgress{align-self:center;color:var(--muted);font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+#generationProgress {
+  align-self: center;
+  margin-inline-start: auto;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #e8eddf;
+  color: #46543b;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+#generationProgress::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-inline-end: 5px;
+  border-radius: 50%;
+  background: #667d55;
+  vertical-align: 2px;
+}
 .workspace-nav button{white-space:nowrap}
 @media(max-width:480px){
- .page-top .workspace-nav{gap:clamp(8px,4vw,18px)}
- .workspace-nav button,#generationProgress{font-size:13px}
+ .page-top .workspace-nav{gap:clamp(6px,2.5vw,12px)}
 }
