@@ -107,3 +107,6 @@
   html, dialog { touch-action: pan-x pan-y; }
   .personal-dialog input:not([type="file"]), .personal-dialog select { font-size: max(16px, 1em); }
 }
+
+#largeImage,#personalPreviewImage{touch-action:none}
+.viewer-image,.personal-preview{overflow:hidden}
