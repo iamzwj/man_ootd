@@ -198,7 +198,14 @@ function renderWorks(){
    const download=node('a','下载图片','work-download');
    download.href=s.asset;download.download='ootd-'+j.id+'-'+s.key+'.jpg';
    for(const [label,replace] of [['重新生成',true],['再生一张',false]]){
-    const button=node('button',label,'work-regenerate');
+    const button=node('button',null,'work-regenerate');
+    const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    icon.setAttribute('viewBox','0 0 24 24');
+    icon.setAttribute('aria-hidden','true');
+    const path=document.createElementNS(icon.namespaceURI,'path');
+    path.setAttribute('d',replace?'M20 4v5h-5 M20 9a8 8 0 1 0 .2 5':'M12 5v14 M5 12h14');
+    icon.append(path);
+    button.append(icon,label);
     button.type='button';
     button.onclick=async()=>{
      button.disabled=true;
