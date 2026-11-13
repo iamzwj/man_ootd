@@ -29,6 +29,16 @@ test('unknown submissions stay explicit and normal refresh does not repeat dismi
  const tracker=create();tracker.track(job('unknown','queued',waiting()));
  tracker.observe([job('unknown','uncertain',[{status:'uncertain'},{status:'uncertain'}])]);assert.equal(tracker.snapshot().status,'uncertain');assert.equal(tracker.snapshot().done,0);
  tracker.dismiss();tracker.observe([job('unknown','uncertain',[{status:'uncertain'},{status:'uncertain'}])]);assert.equal(tracker.snapshot(),null);
- tracker.track(job('next','queued',waiting()));assert.equal(tracker.snapshot().status,'running');assert.equal(tracker.snapshot().total,4);
+ tracker.track(job('next','queued',waiting()));assert.equal(tracker.snapshot().status,'running');assert.equal(tracker.snapshot().total,2);
  tracker.reset();assert.equal(tracker.snapshot(),null);
+});
+
+test('failed and uncertain slots disappear while successful and active slots remain',()=>{
+ const visible=vm.runInNewContext(source+'\nvisibleSlot');
+ const slots=[{status:'failed'},{status:'uncertain'},{status:'running'},{asset:'/image'}];
+ assert.deepEqual(slots.map(s=>visible(job('a','running',slots),s)),[false,false,true,true]);
+ assert.deepEqual(slots.map(s=>visible(job('a','partial',slots),s)),[false,false,false,true]);
+ const tracker=create();
+ tracker.observe([job('old','uncertain',[slots[1]])]);
+ assert.equal(tracker.snapshot(),null);
 });

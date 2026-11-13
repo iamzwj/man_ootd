@@ -2,19 +2,22 @@ const $=s=>document.querySelector(s);
 let state={authenticated:false,profile:{photos:[],views:{}},jobs:[]},pendingReference=null,pendingAction=null,busy=false,polling=false,activeTab='profile',authBusy=false,resendUntil=0;
 const labels={front:'正面',side:'侧面',back:'背面',face:'面部特写'};
 const terminal=new Set(['succeeded','failed','partial','uncertain']);
+const activeSlot=(job,slot)=>!terminal.has(job.status)&&!slot.asset&&!['failed','uncertain'].includes(slot.status);
+const visibleSlot=(job,slot)=>!!slot.asset||activeSlot(job,slot);
+const hasActiveSlots=job=>job.slots.some(slot=>activeSlot(job,slot));
 function createWorkProgress(){
  const tracked=new Map();let dismissed=false;
  function update(job){
   const previous=tracked.get(job.id),total=Math.max(previous?.total||0,job.slots.length);
   const success=job.slots.filter(s=>s.asset).length,unknown=job.slots.filter(s=>!s.asset&&s.status==='uncertain').length;
-  const pending=!terminal.has(job.status);
+  const pending=hasActiveSlots(job);
   const failed=pending?job.slots.filter(s=>!s.asset&&s.status==='failed').length:Math.max(0,total-success-unknown);
   tracked.set(job.id,{total,success,unknown,pending,failed});
  }
  function track(job){
   if(!job||!['same','random'].includes(job.kind))return;
   if(!tracked.has(job.id)){
-   if(![...tracked.values()].some(j=>j.pending||j.unknown))tracked.clear();
+   if(![...tracked.values()].some(j=>j.pending))tracked.clear();
    dismissed=false;
   }
   update(job);
@@ -23,7 +26,7 @@ function createWorkProgress(){
   track,
   observe(jobs){
    const current=new Map(jobs.filter(j=>['same','random'].includes(j.kind)).map(j=>[j.id,j]));
-   for(const job of current.values())if(!terminal.has(job.status)||job.status==='uncertain')track(job);
+   for(const job of current.values())if(hasActiveSlots(job))track(job);
    for(const [id,previous] of tracked){
     const job=current.get(id);
     if(job&&(previous.pending||previous.unknown||!terminal.has(job.status)))update(job);
@@ -51,21 +54,20 @@ function renderGenerationNotice(){
  if(!state.authenticated){card.hidden=true;$('#worksRunningBadge').hidden=true;document.body.classList.remove('has-generation-notice');return}
  workProgress.observe(state.jobs);
  const progress=workProgress.snapshot();
- const running=state.jobs.filter(j=>['same','random'].includes(j.kind)&&!terminal.has(j.status)).length;
+ const running=state.jobs.filter(j=>['same','random'].includes(j.kind)&&hasActiveSlots(j)).length;
  const badge=$('#worksRunningBadge');badge.textContent=running?String(running):'';badge.hidden=!running;
- card.hidden=!progress&&!generationSubmitting&&!generationError;
+ card.hidden=!progress?.pending&&!generationSubmitting&&!generationError;
  document.body.classList.toggle('has-generation-notice',!card.hidden);
  if(card.hidden)return;
  const error=!!generationError,status=error?'failed':generationSubmitting?'submitting':progress.status;
  card.dataset.status=status;
- const titles={submitting:'正在提交生成任务',running:'生成中（'+progress?.done+'/'+progress?.total+'）',succeeded:'生成成功',partial:'部分生成完成',failed:'生成未完成',uncertain:'生成状态待确认'};
- $('#generationNoticeTitle').textContent=error?'未能开始生成':titles[status];
- $('#generationNoticeDescription').textContent=error?generationError:status==='submitting'?'稍候片刻，提交后可继续浏览灵感':progress.pending?(progress.success+' 张已生成'+(progress.failed?' · '+progress.failed+' 张失败':'')+' · 可继续浏览灵感'):progress.unknown?'部分结果尚待确认，请查看生成记录':progress.failed?(progress.success+' 张已生成 · '+progress.failed+' 张未完成'):(progress.success+' 张照片已保存到我的作品');
- $('#generationNoticeClose').hidden=!error&&(generationSubmitting||progress?.pending);
+ $('#generationNoticeTitle').textContent=error?'未能开始生成':status==='submitting'?'正在提交生成任务':'生成中（'+progress.done+'/'+progress.total+'）';
+ $('#generationNoticeDescription').textContent=error?generationError:status==='submitting'?'稍候片刻，提交后可继续浏览灵感':progress.success+' 张已生成 · 可继续浏览灵感';
+ $('#generationNoticeClose').hidden=!error;
  const bar=$('#generationNoticeProgress');bar.hidden=error||status==='submitting'||!progress?.pending;
  bar.setAttribute('aria-valuemax',String(progress?.total||1));bar.setAttribute('aria-valuenow',String(progress?.done||0));
  $('#generationNoticeFill').style.width=(progress?100*progress.done/progress.total:0)+'%';
- $('#generationNoticeView').textContent=progress?.unknown?'查看进度':progress?.pending?'查看进度':'查看作品';
+ $('#generationNoticeView').textContent='查看作品';
 }
 let selectingWorks=false,deletingWorks=false,selectedWorks=new Set();
 const workKey=(j,s)=>JSON.stringify([j.id,s.key]);
@@ -103,16 +105,16 @@ function render(){
  $('#viewNote').hidden=!p.summary;$('#viewNote').textContent='做同款与随机生成使用当前方案的正面、侧面、背面和面部特写，长相细节以面部特写为主，眼镜与耳饰按方案保留。'+(p.summary?.missingViews?.length?'原片未覆盖 '+p.summary.missingViews.join('、')+'，相应视角为 AI 推测补全。':'请检查四张形象是否准确，再用于生成作品。');
  const running=state.jobs.filter(j=>!terminal.has(j.status));$('#jobsBadge').textContent=running.length?String(running.length):'';$('#profileBuild').disabled=busy||!p.photos.length||running.some(j=>['profile','face','view'].includes(j.kind));$('#profileBuild').textContent=running.some(j=>['profile','face','view'].includes(j.kind))?'正在整理形象…':p.summary?'重新整理形象库 · 4 积分':'整理形象库 · 4 积分';$('#deleteIdentity').disabled=busy||running.length>0;
  $('#personalButtonLabel').textContent=state.authenticated?(Object.keys(p.views||{}).length===4?'形象设置 ✓':'形象设置'):'登录 / 形象设置';
- const list=$('#personalJobs');list.replaceChildren();if(!state.jobs.length)list.append(node('p','还没有生成记录。选择喜欢的照片做同款，或点击随机生成。','personal-muted'));
- for(const j of state.jobs){const card=node('article',null,'generation-job');const head=node('div',null,'job-heading');head.append(node('h3',j.kind==='profile'?'形象库参考':j.kind==='view'?'重新生成 · '+(labels[j.slots[0]?.key]||'视图'):j.kind==='face'?'面部特写':j.kind==='random'?'随机灵感':'做同款'));
+ const visibleJobs=state.jobs.filter(j=>j.slots.some(s=>visibleSlot(j,s)));
+ const list=$('#personalJobs');list.replaceChildren();if(!visibleJobs.length)list.append(node('p','还没有生成记录。选择喜欢的照片做同款，或点击随机生成。','personal-muted'));
+ for(const j of visibleJobs){const card=node('article',null,'generation-job');const head=node('div',null,'job-heading');head.append(node('h3',j.kind==='profile'?'形象库参考':j.kind==='view'?'重新生成 · '+(labels[j.slots[0]?.key]||'视图'):j.kind==='face'?'面部特写':j.kind==='random'?'随机灵感':'做同款'));
   const done=j.slots.filter(s=>s.asset).length;head.append(node('span',terminal.has(j.status)?j.status==='succeeded'?'已完成':done?'部分完成':'未完成':j.stage+' · '+done+'/'+j.slots.length,'personal-muted'));card.append(head);
   if(j.identityViews){const identity=node('div',null,'generation-identity');identity.append(node('p',j.identityMethod==='scheme-four-v1'?'本次使用选定方案的正面、侧面、背面与面部特写':j.realIdentityPhoto?'本次面部使用真实原照，方案提供外观参考':'本次使用的形象','personal-muted'));const thumbs=node('div');if(j.realIdentityPhoto)thumbs.append(image(j.realIdentityPhoto,'真实正面原照',true));for(const [key,url] of Object.entries(j.identityViews).filter(([key])=>!j.realIdentityPhoto||key==='front'))thumbs.append(image(url,labels[key]+' · 本次使用的形象',true));identity.append(thumbs);card.append(identity)}
   if(j.reference){const ref=node('div',null,'generation-reference');ref.append(image(j.reference.asset,'场景参考'),node('span','参考 · '+j.reference.title));card.append(ref)}
   const slots=node('div',null,'generation-slots'+(j.kind==='profile'?' four':['face','view'].includes(j.kind)?' single':''));
-  for(const s of j.slots){const box=node('figure');if(s.asset){box.append(image(s.asset,s.label,true));const a=node('a','下载 '+s.label);a.href=s.asset;a.download='ootd-'+j.id+'-'+s.key+'.jpg';box.append(a);}else{box.append(node('div',s.status==='failed'?'生成失败':s.status==='uncertain'?'提交状态待确认':terminal.has(j.status)?'未生成':s.status==='running'?(s.phase==='checking_face'?'正在检查特写取景…':s.phase==='checking_accessories'?'正在核对配饰…':'正在生成…'):'等待中','result-placeholder'));box.append(node('figcaption',s.label))}if(s.error)box.append(node('p',s.error,'personal-error'));slots.append(box)}card.append(slots);
+  for(const s of j.slots.filter(s=>visibleSlot(j,s))){const box=node('figure');if(s.asset){box.append(image(s.asset,s.label,true));const a=node('a','下载 '+s.label);a.href=s.asset;a.download='ootd-'+j.id+'-'+s.key+'.jpg';box.append(a);}else{box.append(node('div',s.status==='failed'?'生成失败':s.status==='uncertain'?'提交状态待确认':terminal.has(j.status)?'未生成':s.status==='running'?(s.phase==='checking_face'?'正在检查特写取景…':s.phase==='checking_accessories'?'正在核对配饰…':'正在生成…'):'等待中','result-placeholder'));box.append(node('figcaption',s.label))}if(s.error)box.append(node('p',s.error,'personal-error'));slots.append(box)}card.append(slots);
   if(j.error)card.append(node('p',j.error,'personal-error'));
   if(['failed','partial'].includes(j.status)){const retry=node('button','重试未完成部分','secondary');retry.onclick=async()=>{retry.disabled=true;try{await api('/retry',{id:j.id});await refresh()}catch(e){message(e.message)}finally{retry.disabled=false}};card.append(retry)}
-  if(j.status==='uncertain')card.append(node('p','提交时连接中断。为避免重复计费，没有自动重发，请保留任务记录。','personal-error'));
   list.append(card)
  }
  renderWorks();
@@ -128,7 +130,7 @@ function renderWorks(){
  selectedWorks=new Set([...selectedWorks].filter(key=>available.has(key)));
  if(!state.authenticated||!available.size){selectingWorks=false;selectedWorks.clear()}
  list.replaceChildren();let count=0;
- for(const j of outputJobs){for(const s of j.slots){
+ for(const j of outputJobs){for(const s of j.slots.filter(s=>visibleSlot(j,s))){
   const card=node('article',null,'work-result');
   if(s.asset){
    count++;card.append(image(s.asset,'我的作品 · '+s.label,!selectingWorks));
@@ -140,7 +142,7 @@ function renderWorks(){
     const download=node('a','下载照片','work-download');download.href=s.asset;download.download='ootd-'+j.id+'-'+s.key+'.jpg';card.append(download);
    }
   }else{
-   card.append(node('div',s.status==='failed'?'生成失败':s.status==='uncertain'?'状态待确认':terminal.has(j.status)?'未生成':'正在生成…','work-pending'));
+   card.append(node('div','正在生成…','work-pending'));
    const details=node('button','查看进度','secondary');details.onclick=()=>open('history');card.append(details);
   }
   list.append(card);
@@ -167,7 +169,7 @@ export function initPersonal(){
  notice.innerHTML='<div class="generation-notice-icon" aria-hidden="true"></div><div class="generation-notice-content"><div id="generationNoticeStatus" role="status" aria-live="polite" aria-atomic="true"><h2 id="generationNoticeTitle"></h2><p id="generationNoticeDescription"></p></div><div id="generationNoticeProgress" class="generation-notice-progress" role="progressbar" aria-label="图片生成进度" aria-valuemin="0"><span id="generationNoticeFill"></span></div><button id="generationNoticeView" type="button">查看进度 <span aria-hidden="true">↗</span></button></div><button id="generationNoticeClose" class="generation-notice-close" type="button" aria-label="关闭生成提示">×</button>';
  document.body.append(notice);
  $('#generationNoticeClose').onclick=()=>{generationError='';workProgress.dismiss();renderGenerationNotice()};
- $('#generationNoticeView').onclick=()=>{generationError='';if(workProgress.snapshot()?.unknown)open('history');else showWorks();renderGenerationNotice()};
+ $('#generationNoticeView').onclick=()=>{generationError='';showWorks();renderGenerationNotice()};
  const actions=node('div',null,'works-actions');$('#worksIdentity').before(actions);actions.append($('#worksIdentity'));
  const select=node('button','选择删除','secondary');select.id='worksSelect';select.type='button';select.hidden=true;actions.prepend(select);
  const selection=node('div',null,'works-selection');selection.id='worksSelection';selection.hidden=true;
