@@ -123,8 +123,24 @@ function render(){
  renderGenerationNotice();
  $('#personalService').textContent=state.configured?state.imageModel+' · '+state.reasonModel+' · GRsai':'生图服务暂未配置';
 }
-function showWorks(){ $('#worksPane').hidden=false;$('#inspirationPane').hidden=true;$('#showWorks').classList.add('active');$('#showInspiration').classList.remove('active');$('#showWorks').setAttribute('aria-pressed','true');$('#showInspiration').setAttribute('aria-pressed','false');$('#personalDialog').close();window.scrollTo({top:0,behavior:'instant'}) }
-function showInspiration(){ $('#worksPane').hidden=true;$('#inspirationPane').hidden=false;$('#showWorks').classList.remove('active');$('#showInspiration').classList.add('active');$('#showWorks').setAttribute('aria-pressed','false');$('#showInspiration').setAttribute('aria-pressed','true');window.dispatchEvent(new Event('ootd:inspiration-open')) }
+function selectWorkspace(activeId){
+ for(const id of ['showInspiration','showWorks','savedButton']){
+  const button=$('#'+id);
+  button.classList.toggle('active',id===activeId);
+  button.setAttribute('aria-pressed',String(id===activeId));
+ }
+ $('#worksPane').hidden=activeId!=='showWorks';
+ $('#inspirationPane').hidden=activeId==='showWorks';
+}
+function showWorks(){
+ selectWorkspace('showWorks');
+ $('#personalDialog').close();
+ window.scrollTo({top:0,behavior:'instant'});
+}
+function showInspiration(view='inspiration'){
+ selectWorkspace(view==='saved'?'savedButton':'showInspiration');
+ window.dispatchEvent(new CustomEvent('ootd:inspiration-open',{detail:view}));
+}
 let worksRenderKey;
 function renderWorks(){
  const list=$('#worksJobs');if(!list)return;
@@ -189,7 +205,7 @@ export function initPersonal(){
  $('#emailLoginForm').onsubmit=async e=>{e.preventDefault();if(authBusy)return;authBusy=true;$('#verifyEmail').disabled=true;message('正在验证…');try{await api('/auth/verify',{email:$('#loginEmail').value,code:$('#loginCode').value});$('#loginCode').value='';await refresh();open();message('登录成功');if(pendingAction&&Object.keys(state.profile.views||{}).length===4){const next=pendingAction;pendingAction=null;await generate(next.kind,next.reference)}}catch(error){message(error.message)}finally{authBusy=false;$('#verifyEmail').disabled=false}};
  $('#logoutEmail').onclick=()=>action(async()=>{await api('/auth/logout',{});state={authenticated:false,profile:{photos:[],views:{}},jobs:[]};pendingAction=null;$('#loginCode').value='';message('已退出登录')});
  function updateResend(){const seconds=Math.max(0,Math.ceil((resendUntil-Date.now())/1000));$('#sendEmailCode').disabled=authBusy||seconds>0;$('#sendEmailCode').textContent=seconds?seconds+' 秒后重发':'获取验证码'}setInterval(updateResend,1000);
- $('#showWorks').onclick=()=>{showWorks();refresh()};$('#savedButton').addEventListener('click',showInspiration);$('#showInspiration').onclick=showInspiration;$('#worksIdentity').onclick=()=>{open();refresh()};
+ $('#showWorks').onclick=()=>{showWorks();refresh()};$('#savedButton').onclick=()=>{showInspiration('saved');window.scrollTo({top:0,behavior:'instant'})};$('#showInspiration').onclick=()=>showInspiration();$('#worksIdentity').onclick=()=>{open();refresh()};
  $('#personalButton').onclick=()=>{open();refresh()};$('#randomGenerate').onclick=()=>generate('random');$('#closePersonal').onclick=()=>dialog.close();$('#profileTab').onclick=()=>open();$('#historyTab').onclick=()=>open('history');
  $('#identityUpload').onchange=()=>action(async()=>{const files=[...$('#identityUpload').files];if(!files.length)return;if(files.length+state.profile.photos.length>12)throw Error('最多上传 12 张照片');message('正在处理和上传照片…');const photos=[];for(const f of files)photos.push(await compressed(f));await api('/upload',{photos});$('#identityUpload').value='';message('照片已保存，点击整理形象库开始分析。')});
  $('#profileBuild').onclick=()=>action(async()=>{await api('/generate',{kind:'profile',requestKey:crypto.randomUUID()});open('history')});
