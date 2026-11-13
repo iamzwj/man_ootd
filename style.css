@@ -93,7 +93,7 @@
 .personal-preview.frameless img {
   max-width: 96vw;
   max-height: 94dvh;
-  border-radius: 0;
+  border-radius: 6px;
 }
 .personal-preview.frameless #closePersonalPreview {
   top: 8px;
