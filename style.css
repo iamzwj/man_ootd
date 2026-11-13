@@ -102,3 +102,8 @@
 .personal-preview.frameless p {
   padding-inline-end: 54px;
 }
+
+@media (pointer: coarse) {
+  html, dialog { touch-action: pan-x pan-y; }
+  .personal-dialog input:not([type="file"]), .personal-dialog select { font-size: max(16px, 1em); }
+}
