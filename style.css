@@ -54,6 +54,7 @@
 @media(max-width:600px){
  .page-top .workspace-nav{margin-bottom:20px}
  .works-selection{top:142px}
+ .works-pane .work-download{display:none}
 }
 
 #generationProgress {
