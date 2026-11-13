@@ -256,6 +256,52 @@ def tuchong(channel,category,cursor):
  return public_cached(('tuchong',channel,category,cursor),fetch)
 
 
+TUCHONG_PORTRAIT_TAGS=('男生写真','男生人像','谁说图虫没有男生写真','你拍过的男生')
+
+
+def tuchong_tag_photos(cursor):
+ tag=TUCHONG_PORTRAIT_TAGS[cursor%len(TUCHONG_PORTRAIT_TAGS)]
+ page=cursor//len(TUCHONG_PORTRAIT_TAGS)+1
+
+ def fetch():
+  query=urlencode({'page':page,'count':20,'order':'new'})
+  data=json.loads(read_public('https://tuchong.com/rest/tags/'+quote(tag,safe='')+'/posts?'+query))
+  posts=data.get('postList')
+  if data.get('result')!='SUCCESS' or not isinstance(posts,list):
+   raise ValueError('invalid tuchong tag response')
+
+  series=[]
+  for post in posts:
+   if post.get('type')!='multi-photo' or post.get('delete'):
+    continue
+   original=post.get('url','')
+   if not re.fullmatch(r'https://tuchong\.com/\d+/\d+/',original):
+    continue
+   caption=html.unescape(re.sub(r'<[^>]+>',' ',str(post.get('title') or '')+' '+str(post.get('excerpt') or '')))
+   if BAD.search(caption) or EXCLUDE_SUBJECT.search(caption):
+    continue
+   tags=[str(t.get('tag_name','')) for t in post.get('tags',[])]
+   category=classify_caption(caption+' '+' '.join(tags),'photo') or '电影人像'
+   images=[]
+   for photo in post.get('images',[])[:6]:
+    owner=str(photo.get('user_id',''))
+    image_id=str(photo.get('img_id_str') or photo.get('img_id',''))
+    if not owner.isascii() or not owner.isdigit() or not image_id.isascii() or not image_id.isdigit():
+     continue
+    image='https://photo.tuchong.com/'+owner+'/lr/'+image_id+'.jpg'
+    item=photography_item(image,original,caption,category,'图虫公开标签',photo.get('width'),photo.get('height'))
+    if item:
+     images.append(item)
+   if images:
+    series.append(images)
+
+  # Give each original post a chance before screening more photos from the same shoot.
+  candidates=[images[index] for index in range(6) for images in series if index<len(images)]
+  return screen_photography(candidates)
+
+ return public_cached(('tuchong-portrait-tag',tag,page),fetch)
+
+
 def dewu(channel,category,cursor):
  # Public SSR topic pages ignore lastId. Each topic is requested once per stream.
  if channel!='outfit' or cursor>=len(DEWU_TOPICS):return [],True
@@ -289,7 +335,7 @@ PHOTO_QUERIES = {
  '黑白情绪': ['black and white man portrait photography', 'male monochrome cinematic portrait', '男生 黑白 情绪 写真'],
  **TOPICS['photo']}
 REVIEW_POLICY='domestic-clothed-v6'
-PROVIDERS = ['360图片 · 国内作品', '必应 · 国内作品', '堆糖', '图虫', 'ELLEMEN公开作品']
+PROVIDERS = ['360图片 · 国内作品', '必应 · 国内作品', '堆糖', '图虫', '图虫公开标签', 'ELLEMEN公开作品']
 DOMESTIC_DOMAINS=('douyin.com','xiaohongshu.com','weibo.com','weibo.cn','zcool.com.cn','tuchong.com','poco.cn','duitang.com','ellemen.com','ellemen.com.cn','hearst.com.cn','gq.com.cn','vogue.com.cn','bazaarchina.com','sohu.com','sina.com.cn','sina.cn','baidu.com','163.com','qq.com')
 def domestic_source(url):
  try:
@@ -524,6 +570,8 @@ def discover(channel,category,cursor,exclude=None):
  if category in TOPICS['photo'] or category=='全部':
   specs += [('堆糖',duitang,(j,cursor)) for j in plan('photo',category,cursor)]
   specs += [('图虫',tuchong,('photo',category,cursor))]
+ if category=='全部':
+  specs.insert(0,('图虫公开标签',tuchong_tag_photos,(cursor,)))
  tasks={}
  scheduled=True
  with LOCK:
