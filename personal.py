@@ -1,7 +1,7 @@
 """Private appearance libraries and durable GRsai photography jobs."""
 from contextlib import contextmanager
 from datetime import datetime,timedelta,timezone
-import base64, concurrent.futures, hashlib, io, json, os, secrets, sqlite3, threading, time, zipfile
+import base64, concurrent.futures, hashlib, io, json, os, secrets, sqlite3, threading, time
 from pathlib import Path
 from http.cookies import SimpleCookie
 from urllib.request import Request, urlopen, build_opener, HTTPRedirectHandler
@@ -269,26 +269,6 @@ def start_review(owner,jid,key):
     if target:target['review']=result;save_job(latest)
    REVIEWING.discard((jid,key))
  REVIEW_WORKERS.submit(work);return j
-
-def publishing_package(owner,q):
- j=load_job(q.get('id',''))
- if not j or j['owner']!=owner:raise UserError('作品不存在')
- slot=next((s for s in j['slots'] if s['key']==q.get('slot') and s.get('asset') and not s.get('deleted')),None)
- if not slot or (slot.get('review') or {}).get('status') not in {'passed','needs_changes','uncertain'}:raise UserError('请先完成作品审核，再人工确认是否准备发布')
- if q.get('confirmed') is not True:raise UserError('请先确认已核对图片与文案')
- title=q.get('title');caption=q.get('caption');platform=q.get('platform')
- if not isinstance(title,str) or not title.strip() or len(title)>80:raise UserError('请输入80字以内标题')
- if not isinstance(caption,str) or len(caption)>2000:raise UserError('正文最多2000字')
- if platform not in {'xiaohongshu','douyin'}:raise UserError('请选择发布平台')
- caption=caption.strip()
- if 'AI生成图片' not in caption.splitlines():caption+='\n\nAI生成图片'
- data=io.BytesIO()
- with zipfile.ZipFile(data,'w',compression=zipfile.ZIP_DEFLATED) as z:
-  z.writestr('photo.jpg',asset(owner,slot['asset']))
-  z.writestr('caption.txt',title.strip()+'\n\n'+caption)
-  review=slot['review'];z.writestr('review.json',json.dumps({**{k:v for k,v in review.items() if k not in {'reference'}},'humanConfirmedForPreparation':True},ensure_ascii=False,indent=2))
-  z.writestr('发布说明.txt','这是发布准备包，尚未向平台上传或发布。\n解压后上传photo.jpg，填写caption.txt中的标题与正文。发布前请人工确认图片、内容及平台的AI生成标识。\nAI审核仅提供外观与摄影自然度建议，不证明身份或保证没有生成痕迹。')
- return data.getvalue()
 
 def execute(jid):
  j=load_job(jid)
@@ -597,7 +577,6 @@ def handle(h,catalog):
   elif path=='/api/personal/photo/remove':send(200,{'profile':remove_photo(owner,q.get('photo'))})
   elif path=='/api/personal/works/delete':send(200,delete_works(owner,q.get('items')))
   elif path=='/api/personal/review':send(202,{'job':public_job(start_review(owner,q.get('id',''),q.get('slot')))})
-  elif path=='/api/personal/publish/package':send(200,raw=publishing_package(owner,q),content_type='application/zip',filename='ootd-publish.zip')
   elif path=='/api/personal/generate':send(202,{'job':public_job(create_job(owner,q,catalog()))})
   elif path=='/api/personal/retry':
    with GUARD:

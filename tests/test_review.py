@@ -1,4 +1,4 @@
-import io,json,tempfile,unittest,zipfile
+import io,json,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
 from PIL import Image
@@ -25,22 +25,8 @@ class ReviewTests(unittest.TestCase):
   with patch.object(p,'reason',return_value=self.raw()) as reason:r=p.review_generated(j,j['slots'][0])
   self.assertEqual(reason.call_args.args[1][0],p.data_uri('owner',face));self.assertIn('可见区域缺少指定眼镜',reason.call_args.args[0]);self.assertEqual(r['referenceKind'],'scheme-face')
   self.assertIn('不得建议恢复面部特写中的固定表情',reason.call_args.args[0])
- def package(self,**change):return p.publishing_package('owner',{'id':'job-review','slot':'1','platform':'xiaohongshu','confirmed':True,'title':'窗边','caption':'光影记录',**change})
- def test_package_contains_only_result_and_copy_with_ai_label(self):
-  with zipfile.ZipFile(io.BytesIO(self.package())) as z:
-   self.assertEqual(set(z.namelist()),{'photo.jpg','caption.txt','review.json','发布说明.txt'});self.assertEqual(z.read('photo.jpg'),p.asset('owner',self.output));self.assertIn('AI生成图片',z.read('caption.txt').decode());self.assertNotIn(self.original,z.read('review.json').decode())
- def test_publish_requires_pass_and_human_confirmation_and_ownership(self):
-  with self.assertRaises(p.UserError):self.package(confirmed=False)
-  with self.assertRaises(p.UserError):p.publishing_package('other',{'id':'job-review'})
-  j=p.load_job('job-review');j['slots'][0]['review']['status']='checking';p.save_job(j)
-  with self.assertRaises(p.UserError):self.package()
  def test_manual_review_is_owned_and_deduplicated(self):
   with self.assertRaises(p.UserError):p.start_review('other','job-review','1')
   with patch.object(p.REVIEW_WORKERS,'submit') as submit:
    p.start_review('owner','job-review','1');p.start_review('owner','job-review','1');self.assertEqual(submit.call_count,1)
   p.REVIEWING.discard(('job-review','1'))
-
- def test_uncertain_review_can_be_manually_confirmed_without_faking_pass(self):
-  j=p.load_job('job-review');j['slots'][0]['review']['status']='uncertain';p.save_job(j)
-  with zipfile.ZipFile(io.BytesIO(self.package())) as z:
-   review=json.loads(z.read('review.json'));self.assertEqual(review['status'],'uncertain');self.assertTrue(review['humanConfirmedForPreparation'])
