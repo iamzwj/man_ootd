@@ -5,7 +5,6 @@ from PIL import Image
 import personal as p
 class PersonalTests(unittest.TestCase):
  def setUp(self):
-  self.review=patch.object(p,'review_generated',return_value={'status':'passed','version':1});self.review.start();self.addCleanup(self.review.stop)
   self.accessory_check=patch.object(p,'accessories_match',return_value=True);self.accessory_check.start();self.addCleanup(self.accessory_check.stop)
   self.tmp=tempfile.TemporaryDirectory();self.root=patch.object(p,'ROOT',Path(self.tmp.name));self.root.start()
   out=io.BytesIO();Image.new('RGB',(240,320),'gray').save(out,'JPEG');self.img=out.getvalue();self.owner='owner-a';self.photo=p.store_asset(self.owner,self.img)

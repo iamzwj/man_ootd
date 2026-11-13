@@ -109,7 +109,7 @@ function render(){
   if(j.identityViews){const identity=node('div',null,'generation-identity');identity.append(node('p',j.identityMethod==='scheme-four-v1'?'本次使用选定方案的正面、侧面、背面与面部特写':j.realIdentityPhoto?'本次面部使用真实原照，方案提供外观参考':'本次使用的形象','personal-muted'));const thumbs=node('div');if(j.realIdentityPhoto)thumbs.append(image(j.realIdentityPhoto,'真实正面原照',true));for(const [key,url] of Object.entries(j.identityViews).filter(([key])=>!j.realIdentityPhoto||key==='front'))thumbs.append(image(url,labels[key]+' · 本次使用的形象',true));identity.append(thumbs);card.append(identity)}
   if(j.reference){const ref=node('div',null,'generation-reference');ref.append(image(j.reference.asset,'场景参考'),node('span','参考 · '+j.reference.title));card.append(ref)}
   const slots=node('div',null,'generation-slots'+(j.kind==='profile'?' four':['face','view'].includes(j.kind)?' single':''));
-  for(const s of j.slots){const box=node('figure');if(s.asset){box.append(image(s.asset,s.label,true));const a=node('a','下载 '+s.label);a.href=s.asset;a.download='ootd-'+j.id+'-'+s.key+'.jpg';box.append(a);if(['same','random'].includes(j.kind))box.append(reviewControls(j,s))}else{box.append(node('div',s.status==='failed'?'生成失败':s.status==='uncertain'?'提交状态待确认':terminal.has(j.status)?'未生成':s.status==='running'?(s.phase==='checking_face'?'正在检查特写取景…':s.phase==='checking_accessories'?'正在核对配饰…':'正在生成…'):'等待中','result-placeholder'));box.append(node('figcaption',s.label))}if(s.error)box.append(node('p',s.error,'personal-error'));slots.append(box)}card.append(slots);
+  for(const s of j.slots){const box=node('figure');if(s.asset){box.append(image(s.asset,s.label,true));const a=node('a','下载 '+s.label);a.href=s.asset;a.download='ootd-'+j.id+'-'+s.key+'.jpg';box.append(a);}else{box.append(node('div',s.status==='failed'?'生成失败':s.status==='uncertain'?'提交状态待确认':terminal.has(j.status)?'未生成':s.status==='running'?(s.phase==='checking_face'?'正在检查特写取景…':s.phase==='checking_accessories'?'正在核对配饰…':'正在生成…'):'等待中','result-placeholder'));box.append(node('figcaption',s.label))}if(s.error)box.append(node('p',s.error,'personal-error'));slots.append(box)}card.append(slots);
   if(j.error)card.append(node('p',j.error,'personal-error'));
   if(['failed','partial'].includes(j.status)){const retry=node('button','重试未完成部分','secondary');retry.onclick=async()=>{retry.disabled=true;try{await api('/retry',{id:j.id});await refresh()}catch(e){message(e.message)}finally{retry.disabled=false}};card.append(retry)}
   if(j.status==='uncertain')card.append(node('p','提交时连接中断。为避免重复计费，没有自动重发，请保留任务记录。','personal-error'));
@@ -119,7 +119,6 @@ function render(){
  renderGenerationNotice();
  $('#personalService').textContent=state.configured?state.imageModel+' · '+state.reasonModel+' · GRsai':'生图服务暂未配置';
 }
-function reviewControls(j,s){const wrap=node('div',null,'work-review'),r=s.review||{};const text={checking:'审核中',passed:'审核通过',needs_changes:'建议调整',uncertain:'需要人工核对',failed:'审核未完成'};const details=node('details');const summary=node('summary','AI审核 · '+(text[r.status]||'未审核'));details.append(summary);if(r.error)details.append(node('p',r.error,'personal-error'));for(const [key,label] of [['appearance','外观特征对照'],['naturalness','摄影自然度']]){if(!r[key])continue;details.append(node('strong',label));for(const issue of r[key].issues||[])details.append(node('p',issue));for(const tip of r[key].suggestions||[])details.append(node('p','建议：'+tip));if(!(r[key].issues||[]).length)details.append(node('p',r[key].verdict==='pass'?'未发现明显问题':'参考不足，请人工核对'))}details.append(node('p','审核是辅助建议，请结合图片自行判断。','personal-muted'));wrap.append(details);const run=node('button',r.status?'重新审核':'审核这张','review-action');run.disabled=r.status==='checking'||busy;run.onclick=()=>action(()=>api('/review',{id:j.id,slot:s.key}));wrap.append(run);return wrap}
 function showWorks(){ $('#worksPane').hidden=false;$('#inspirationPane').hidden=true;$('#showWorks').classList.add('active');$('#showInspiration').classList.remove('active');$('#showWorks').setAttribute('aria-pressed','true');$('#showInspiration').setAttribute('aria-pressed','false');$('#personalDialog').close();window.scrollTo({top:0,behavior:'instant'}) }
 function showInspiration(){ $('#worksPane').hidden=true;$('#inspirationPane').hidden=false;$('#showWorks').classList.remove('active');$('#showInspiration').classList.add('active');$('#showWorks').setAttribute('aria-pressed','false');$('#showInspiration').setAttribute('aria-pressed','true');window.dispatchEvent(new Event('ootd:inspiration-open')) }
 function renderWorks(){
@@ -138,7 +137,7 @@ function renderWorks(){
     choose.onclick=()=>{if(deletingWorks)return;const key=choose.dataset.key;selectedWorks.has(key)?selectedWorks.delete(key):selectedWorks.add(key);renderWorkSelection()};
     card.querySelector('img').onclick=()=>choose.click();card.append(choose);
    }else{
-    const download=node('a','下载照片','work-download');download.href=s.asset;download.download='ootd-'+j.id+'-'+s.key+'.jpg';card.append(download);card.append(reviewControls(j,s));
+    const download=node('a','下载照片','work-download');download.href=s.asset;download.download='ootd-'+j.id+'-'+s.key+'.jpg';card.append(download);
    }
   }else{
    card.append(node('div',s.status==='failed'?'生成失败':s.status==='uncertain'?'状态待确认':terminal.has(j.status)?'未生成':'正在生成…','work-pending'));
@@ -190,5 +189,5 @@ export function initPersonal(){
  $('#deleteIdentity').onclick=()=>{if(confirm('删除原始照片、形象参考及所有生成记录？此操作无法恢复。'))action(()=>api('/delete',{}))};
  window.addEventListener('ootd:make-same',e=>{pendingReference=e.detail;$('#continueSame').hidden=false;generate('same',e.detail)});
  dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
- refresh();setInterval(()=>{if(dialog.open||state.jobs.some(j=>!terminal.has(j.status)||j.slots.some(s=>s.review?.status==='checking')))refresh()},5000)
+ refresh();setInterval(()=>{if(dialog.open||state.jobs.some(j=>!terminal.has(j.status)))refresh()},5000)
 }

@@ -26,13 +26,13 @@ class DeleteWorksTests(unittest.TestCase):
   for owner,items in [('other',[{'id':'work','slot':'1'}]),('owner',[{'id':'work','slot':'1'},{'id':'missing','slot':'2'}]),('owner',[])]:
    with self.assertRaises(p.UserError):p.delete_works(owner,items)
   self.assertTrue(p.asset('owner',self.urls[1]));self.assertFalse(p.load_job('work')['slots'][0].get('deleted'))
- def test_running_and_reviewing_results_cannot_be_deleted(self):
+ def test_running_results_cannot_be_deleted_and_old_reviews_do_not_block_deletion(self):
   j=p.load_job('work');j['status']='running';p.save_job(j)
   with self.assertRaises(p.UserError):p.delete_works('owner',[{'id':'work','slot':'1'}])
   j['status']='succeeded';j['slots'][0]['review']={'status':'checking'};p.save_job(j)
-  with self.assertRaises(p.UserError):p.delete_works('owner',[{'id':'work','slot':'1'}])
- def test_shared_asset_remains_accessible_and_deleted_work_cannot_be_reviewed(self):
+  p.delete_works('owner',[{'id':'work','slot':'1'}])
+  self.assertTrue(p.load_job('work')['slots'][0]['deleted'])
+ def test_shared_asset_remains_accessible(self):
   p.save_profile('owner',{'photos':[self.urls[0]],'views':{'front':self.urls[1]}})
   p.delete_works('owner',[{'id':'work','slot':'1'},{'id':'work','slot':'2'}])
   self.assertTrue(p.asset('owner',self.urls[1]));self.assertEqual(p.public_job(p.load_job('work'))['slots'],[])
-  with self.assertRaises(p.UserError):p.start_review('owner','work','1')

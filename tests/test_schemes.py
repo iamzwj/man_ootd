@@ -57,7 +57,7 @@ class SchemeTests(PersonalTests):
   with self.assertRaises(p.UserError):p.select_identity_photo('other',second)
   j=self.make('same',referenceId='ref');self.assertEqual(j['photos'],[profile['views'][k] for k in p.IDENTITY_VIEW_ORDER]);self.assertNotIn(second,j['photos'])
   p.select_identity_photo(self.owner,self.photo);self.assertEqual(p.load_job(j['id'])['photos'],j['photos'])
- def test_reviewer_failure_keeps_finished_images_and_generation_charges(self):
+ def test_generation_completes_and_charges_without_review(self):
   self.ready();j=self.make('same',referenceId='ref')
-  with patch.object(p,'reason',return_value={'style':'窗边'}),patch.object(p,'submit_image',side_effect=['a','b']),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/out.jpg'}]}),patch.object(p,'remote_image',return_value=self.img),patch.object(p,'review_generated',side_effect=p.UserError('review unavailable')):p.execute(j['id'])
-  done=p.load_job(j['id']);self.assertEqual(done['status'],'succeeded');self.assertTrue(all(x.get('asset') for x in done['slots']));self.assertTrue(all(x['review']['status']=='failed' for x in done['slots']));self.assertEqual(p.credit_balance(self.owner)['remaining'],8)
+  with patch.object(p,'reason',return_value={'style':'窗边'}),patch.object(p,'submit_image',side_effect=['a','b']),patch.object(p,'api',return_value={'status':'succeeded','results':[{'url':'https://example.com/out.jpg'}]}),patch.object(p,'remote_image',return_value=self.img):p.execute(j['id'])
+  done=p.load_job(j['id']);self.assertEqual(done['status'],'succeeded');self.assertTrue(all(x.get('asset') for x in done['slots']));self.assertTrue(all('review' not in x for x in done['slots']));self.assertEqual(p.credit_balance(self.owner)['remaining'],8)

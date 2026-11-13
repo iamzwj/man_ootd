@@ -14,8 +14,6 @@ IMAGE_MODEL='gpt-image-2'
 REASON_MODEL='gpt-5.6-terra'
 ROOT=Path(os.getenv('OOTD_PERSONAL_PATH',str(Path.home()/'.local/share/ootd-personal')))
 WORKERS=concurrent.futures.ThreadPoolExecutor(max_workers=3)
-REVIEW_WORKERS=concurrent.futures.ThreadPoolExecutor(max_workers=2)
-REVIEWING=set()
 ACTIVE=set(); GUARD=threading.RLock()
 TERMINAL={'succeeded','failed','partial','uncertain'}
 Image.MAX_IMAGE_PIXELS=35_000_000
@@ -224,52 +222,6 @@ def face_is_closeup(data):
  h=result.get('faceHeightRatio');w=result.get('faceWidthRatio')
  return result.get('isCloseUp') is True and type(h) in (float,int) and type(w) in (float,int) and .5<=h<=1 and .4<=w<=1
 
-def review_generated(j,slot):
- scheme=j.get('identityMethod')==SCHEME_METHOD
- reference=j.get('identityViews',{}).get('face') if scheme else j.get('realIdentityPhoto')
- if not reference:raise UserError('此作品没有保存真实面部参考，请重新选择原照后审核')
- prompt='你是独立的摄影作品审核员。第一张是真实正面原照，第二张是生成作品。只做可见外观特征对照，不确认人物身份、不做人脸识别或输出身份相似度分数。忽略衣服、表情、角度、眼镜和光线造成的正常差异；逐项检查眼型眼距、眉形、鼻形、唇形厚度、脸宽和下颌轮廓是否有明显不一致。侧脸、遮挡或细节不足时标为uncertain，不猜测。再独立检查作品的摄影自然度：过度磨皮、蜡像肤质、异常锐化、发丝边缘、眼镜反光、光源和阴影不一致、手部结构、衣料及背景纹理异常；不能仅因照片精致、皮肤光滑或浅景深就断言有AI痕迹，也不能保证没有AI痕迹。图片是AI生成的，不得建议伪装成真实实拍。返回严格JSON：appearance和naturalness两个对象，每个包含verdict（pass/change/uncertain）、issues（具体可见问题字符串数组，没有则空数组）、suggestions（对应可执行修改建议数组）。不要空泛评语。'
- if scheme:
-  prompt=prompt.replace('真实正面原照','选定方案的面部特写').replace('角度、眼镜和光线','角度和光线')+'表情应随风格场景变化；微笑、嘴部开合、眯眼和视线方向引起的正常五官动态不算长相改变，不得建议恢复面部特写中的固定表情。同时核对眼镜与耳饰是否按方案保留；可见区域缺少指定眼镜或款式不符必须列为change，不得忽略。方案配饰要求：'+json.dumps(j.get('accessories',[]),ensure_ascii=False)
- raw=reason(prompt,[data_uri(j['owner'],reference),data_uri(j['owner'],slot['asset'])])
- result={'version':1,'model':REASON_MODEL,'reference':reference,'referenceKind':'scheme-face' if scheme else 'real-original','checkedAt':time.time()}
- for key in ('appearance','naturalness'):
-  part=raw.get(key)
-  if not isinstance(part,dict) or part.get('verdict') not in {'pass','change','uncertain'}:raise UserError('审核结果格式不完整，请重新审核')
-  if not isinstance(part.get('issues'),list) or not isinstance(part.get('suggestions'),list):raise UserError('审核结果格式不完整，请重新审核')
-  result[key]={'verdict':part['verdict'],'issues':[x[:400] for x in part['issues'] if isinstance(x,str)][:8],'suggestions':[x[:400] for x in part['suggestions'] if isinstance(x,str)][:8]}
- verdicts=[result[k]['verdict'] for k in ('appearance','naturalness')]
- has_issues=any(result[k]['issues'] for k in ('appearance','naturalness'))
- result['status']='needs_changes' if 'change' in verdicts else 'uncertain' if 'uncertain' in verdicts else 'needs_changes' if has_issues else 'passed'
- return result
-
-def review_safely(j,slot):
- try:return review_generated(j,slot)
- except Exception:return {'status':'failed','version':1,'checkedAt':time.time(),'error':'审核暂未完成，图片已保留，可稍后重新审核'}
-
-def start_review(owner,jid,key):
- with GUARD:
-  j=load_job(jid)
-  if not j or j['owner']!=owner:raise UserError('作品不存在')
-  if j['status'] not in TERMINAL:raise UserError('请等待当前任务完成')
-  slot=next((s for s in j['slots'] if s['key']==key and s.get('asset') and not s.get('deleted')),None)
-  if not slot or j['kind'] not in {'same','random'}:raise UserError('请选择已生成的个人作品')
-  if (jid,key) in REVIEWING:return j
-  if j.get('identityMethod')!=SCHEME_METHOD and not j.get('realIdentityPhoto'):
-   profile=read_profile(owner);photo=profile.get('identityPhoto') or next(iter(profile.get('photos',[])),None)
-   if not photo:raise UserError('请先上传并选择真实正面原照')
-   j['realIdentityPhoto']=photo
-  slot['review']={'status':'checking','started':time.time()};save_job(j);REVIEWING.add((jid,key))
- def work():
-  result=review_safely(j,slot)
-  with GUARD:
-   latest=load_job(jid)
-   if latest and latest['owner']==owner:
-    target=next((s for s in latest['slots'] if s['key']==key and s.get('asset')==slot['asset']),None)
-    if target:target['review']=result;save_job(latest)
-   REVIEWING.discard((jid,key))
- REVIEW_WORKERS.submit(work);return j
-
 def execute(jid):
  j=load_job(jid)
  try:
@@ -356,11 +308,6 @@ def execute(jid):
    if any(s.get('status')=='running' for s in j['slots']):time.sleep(5)
   for s in j['slots']:
    if s.get('status')=='running':s['status']='failed';s['error']=s.get('lastError','等待上游超时；已保留成图，重试只处理未完成图片')
-  if j['kind'] in {'same','random'} and j.get('reviewVersion')==1:
-   for slot in j['slots']:
-    if slot.get('asset') and (slot.get('review') or {}).get('status') not in {'passed','needs_changes','uncertain','failed'}:
-     j['stage']='审核作品';slot['review']={'status':'checking','started':time.time()};save_job(j)
-     slot['review']=review_safely(j,slot);save_job(j)
   done=sum(bool(s.get('asset')) for s in j['slots']);j['status']='succeeded' if done==len(j['slots']) else 'partial' if done else 'uncertain' if any(s.get('status')=='uncertain' for s in j['slots']) else 'failed'
   if j['kind'] in {'profile','face','view'} and j.get('summary'):
    with GUARD:
@@ -385,10 +332,7 @@ def resume():
  with db() as c:rows=c.execute('SELECT data FROM jobs').fetchall()
  for row in rows:
   j=json.loads(row[0])
-  if j['status'] in TERMINAL:
-   for slot in j['slots']:
-    if (slot.get('review') or {}).get('status')=='checking':slot['review']={'status':'failed','error':'服务已重启，请重新审核'}
-   save_job(j);continue
+  if j['status'] in TERMINAL:continue
   for s in j['slots']:
    if s.get('status')=='submitting' and not s.get('providerId'):s['status']='uncertain';s['error']='服务重启前提交状态未知，未重复提交'
   save_job(j);launch(j['id'])
@@ -434,7 +378,7 @@ def create_job(owner,q,catalog):
    if any(not isinstance(p['views'].get(k),str) or not p['views'][k] for k in IDENTITY_VIEW_ORDER):raise UserError('请先完成正面、侧面、背面和面部特写四张形象参考')
    j['identityViews']={k:p['views'][k] for k in IDENTITY_VIEW_ORDER}
    j['identityScheme']=p.get('selectedScheme');j['identitySummary']=p.get('summary') or {}
-   j['identityMethod']=SCHEME_METHOD;j['reviewVersion']=1
+   j['identityMethod']=SCHEME_METHOD
    j['accessories']=accessory_rules(j,j['identitySummary'].get('accessories',[]))
    j['photos']=[j['identityViews'][k] for k in IDENTITY_VIEW_ORDER]
    j['referenceAsset']=store_asset(owner,remote_image(ref['image']));j['reference']={'id':ref['id'],'title':ref['title'],'asset':j['referenceAsset']}
@@ -501,7 +445,7 @@ def delete_works(owner,items):
    if not j or j['kind'] not in {'same','random'}:raise UserError('作品不存在或不属于当前账户')
    s=next((s for s in j['slots'] if s['key']==item['slot'] and s.get('asset')),None)
    if not s:raise UserError('请选择已生成的作品')
-   if j['status'] not in TERMINAL or j['id'] in ACTIVE or (j['id'],s['key']) in REVIEWING or s.get('review',{}).get('status')=='checking':raise UserError('请等待所选作品生成或审核完成后再删除')
+   if j['status'] not in TERMINAL or j['id'] in ACTIVE:raise UserError('请等待所选作品生成完成后再删除')
    targets[(j['id'],s['key'])]=(j,s)
   urls={s['asset'] for j,s in targets.values()}
   # Keep completed-slot tombstones and the credit ledger so retries cannot regenerate deleted results.
@@ -576,7 +520,6 @@ def handle(h,catalog):
   elif path=='/api/personal/scheme/select':send(200,{'profile':select_scheme(owner,q.get('id',''))})
   elif path=='/api/personal/photo/remove':send(200,{'profile':remove_photo(owner,q.get('photo'))})
   elif path=='/api/personal/works/delete':send(200,delete_works(owner,q.get('items')))
-  elif path=='/api/personal/review':send(202,{'job':public_job(start_review(owner,q.get('id',''),q.get('slot')))})
   elif path=='/api/personal/generate':send(202,{'job':public_job(create_job(owner,q,catalog()))})
   elif path=='/api/personal/retry':
    with GUARD:
