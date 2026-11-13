@@ -46,14 +46,14 @@ function createWorkProgress(){
  };
 }
 const workProgress=createWorkProgress();
-let generationChecking=false,generationSubmitting=false,generationError='',progressOwner=null;
+let generationChecking=false,generationSubmitting=0,generationError='',progressOwner=null;
 function renderGenerationProgress(){
  const owner=state.authenticated?(state.user?.email||'current-account'):null;
  if(owner!==progressOwner){workProgress.reset();if(progressOwner!==null)generationError='';progressOwner=owner}
  if(owner)workProgress.observe(state.jobs);
  const progress=workProgress.snapshot();
  const done=progress?.pending?progress.done:0;
- const total=(progress?.pending?progress.total:0)+(generationSubmitting?2:0);
+ const total=(progress?.pending?progress.total:0)+generationSubmitting;
  const label=$('#generationProgress');
  const text=total?'生成中（'+done+'/'+total+'）':'';
  if(label.textContent!==text)label.textContent=text;
@@ -84,8 +84,8 @@ async function deleteSelectedWorks(){
 function node(tag,text,cls){const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n}
 function message(text){if($('#worksMessage')){$('#worksMessage').textContent=text;$('#worksMessage').hidden=!text}$('#personalMessage').textContent=text;$('#personalMessage').hidden=!text}
 async function api(path='',data,signal){const r=await fetch('/api/personal'+path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined,cache:'no-store',signal});const result=await r.json();if(!r.ok)throw Error(result.error||'请求失败，请重试');return result}
-function image(url,alt,preview=false){const img=node('img');img.src=url;img.alt=alt;img.loading='lazy';if(preview){img.className='previewable';img.tabIndex=0;img.setAttribute('role','button');img.setAttribute('aria-label','预览 '+alt);img.title='点击查看大图';img.onclick=()=>previewImage(url,alt);img.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();previewImage(url,alt)}}}return img}
-function previewImage(url,alt){const dialog=$('#personalPreview'),img=$('#personalPreviewImage'),status=$('#personalPreviewStatus');status.hidden=false;status.textContent='正在打开图片…';img.onload=()=>{status.hidden=true};img.onerror=()=>{status.hidden=false;status.textContent='图片暂时无法加载，请关闭后重试'};img.alt=alt;img.src=url;if(!dialog.open)dialog.showModal()}
+function image(url,alt,preview=false,frameless=false){const img=node('img');img.src=url;img.alt=alt;img.loading='lazy';if(preview){img.className='previewable';img.tabIndex=0;img.setAttribute('role','button');img.setAttribute('aria-label','预览 '+alt);img.title='点击查看大图';img.onclick=()=>previewImage(url,alt,frameless);img.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();previewImage(url,alt,frameless)}}}return img}
+function previewImage(url,alt,frameless){const dialog=$('#personalPreview'),img=$('#personalPreviewImage'),status=$('#personalPreviewStatus');dialog.classList.toggle('frameless',frameless);status.hidden=false;status.textContent='正在打开图片…';img.onload=()=>{status.hidden=true};img.onerror=()=>{status.hidden=false;status.textContent='图片暂时无法加载，请关闭后重试'};img.alt=alt;img.src=url;if(!dialog.open)dialog.showModal()}
 function panes(){const logged=!!state.authenticated;$('#loginPane').hidden=logged;$('#personalTabs').hidden=!logged;$('#accountBar').hidden=!logged;$('#creditRule').hidden=!logged;$('#profilePane').hidden=!logged||activeTab!=='profile';$('#historyPane').hidden=!logged||activeTab!=='history';$('#profileTab').setAttribute('aria-selected',String(activeTab==='profile'));$('#historyTab').setAttribute('aria-selected',String(activeTab==='history'));$('#personalDialog').classList.toggle('login-only',!logged)}
 function open(tab='profile'){activeTab=tab;const d=$('#personalDialog');panes();if(!d.open)d.showModal()}
 let renderedState,renderedBusy;
@@ -147,13 +147,23 @@ function renderWorks(){
  list.replaceChildren();let count=0;
  for(const j of outputJobs){for(const s of j.slots.filter(s=>s.asset)){
   const card=node('article',null,'work-result');
-  count++;card.append(image(s.asset,'我的作品 · '+s.label,!selectingWorks));
+  count++;card.append(image(s.asset,'我的作品 · '+s.label,!selectingWorks,true));
   if(selectingWorks){
    const choose=node('button',null,'work-select');choose.type='button';choose.dataset.key=workKey(j,s);
    choose.onclick=()=>{if(deletingWorks)return;const key=choose.dataset.key;selectedWorks.has(key)?selectedWorks.delete(key):selectedWorks.add(key);renderWorkSelection()};
    card.querySelector('img').onclick=()=>choose.click();card.append(choose);
   }else{
-   const download=node('a','下载照片','work-download');download.href=s.asset;download.download='ootd-'+j.id+'-'+s.key+'.jpg';card.append(download);
+   const actions=node('div',null,'work-card-actions');
+   const download=node('a','下载图片','work-download');
+   download.href=s.asset;download.download='ootd-'+j.id+'-'+s.key+'.jpg';
+   const regenerate=node('button','重新生成','work-regenerate');
+   regenerate.type='button';
+   regenerate.onclick=async()=>{
+    regenerate.disabled=true;
+    try{await generate(null,{sourceJob:j.id,slot:s.key})}
+    finally{regenerate.disabled=false}
+   };
+   actions.append(download,regenerate);card.append(actions);
   }
   list.append(card);
  }}
@@ -179,7 +189,8 @@ async function refresh(force=false){
 }
 async function action(fn){if(busy)return;busy=true;message('');render();try{await fn()}catch(e){message(e.message)}finally{busy=false;await refresh()}}
 async function compressed(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw Error('请选择 JPG、PNG 或 WebP 照片');if(file.size>12_000_000)throw Error('单张照片不能超过 12 MB');const bmp=await createImageBitmap(file,{imageOrientation:'from-image'});if(Math.min(bmp.width,bmp.height)<160){bmp.close();throw Error('照片短边至少需要 160 像素')}const ratio=Math.min(1,1600/Math.max(bmp.width,bmp.height));const canvas=document.createElement('canvas');canvas.width=Math.round(bmp.width*ratio);canvas.height=Math.round(bmp.height*ratio);canvas.getContext('2d').drawImage(bmp,0,0,canvas.width,canvas.height);bmp.close();return canvas.toDataURL('image/jpeg',.9)}
-async function generate(reference){
+async function generate(reference,source=null){
+ const required=source?1:2;
  if(generationChecking||generationSubmitting)return;
  const personalDialog=$('#personalDialog');
  const showStatus=text=>{if(personalDialog.open)message(text)};
@@ -195,17 +206,20 @@ async function generate(reference){
   if(!await refresh())throw Error('暂时无法确认账户状态，请重试。');
   if(busy)throw Error('正在保存形象设置，请稍候再试。');
   if(!state.authenticated){
+   if(source)throw Error('请登录后重新生成。');
    pendingAction={reference};open();message('邮箱登录后即可建立形象库和生成个人照片。');return;
   }
-  if(Object.keys(state.profile.views||{}).length<4){
+  if(!source&&Object.keys(state.profile.views||{}).length<4){
    pendingReference=reference;open();message('先上传照片并完成形象库整理，然后就能做同款。');return;
   }
   const remaining=state.credits?.remaining??0;
-  if(remaining<2)throw Error('积分不足：本次需要 2 积分，今日剩余 '+remaining+' 积分。');
+  if(remaining<required)throw Error('积分不足：本次需要 '+required+' 积分，今日剩余 '+remaining+' 积分。');
   generationChecking=false;
-  generationSubmitting=true;
+  generationSubmitting=required;
   showStatus('正在提交生成任务…');renderGenerationProgress();
-  const payload={kind:'same',schemeId:state.profile.selectedScheme??null,requestKey:crypto.randomUUID(),referenceId:reference.id};
+  const requestKey=crypto.randomUUID();
+  const payload=source?{kind:'regenerate',requestKey,...source}:
+   {kind:'same',requestKey,schemeId:state.profile.selectedScheme??null,referenceId:reference.id};
   const result=await api('/generate',payload);
   state.jobs=[result.job,...state.jobs.filter(j=>j.id!==result.job.id)];
   workProgress.track(result.job);renderWorks();
@@ -215,7 +229,7 @@ async function generate(reference){
  }catch(error){
   generationError=error.message;showStatus(generationError);
  }finally{
-  generationChecking=false;generationSubmitting=false;renderGenerationProgress();
+  generationChecking=false;generationSubmitting=0;renderGenerationProgress();
  }
 }
 export function initPersonal(){

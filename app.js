@@ -1,4 +1,4 @@
-import {initPersonal} from './personal.js?v=nav-progress-1';
+import {initPersonal} from './personal.js?v=works-preview-1';
 import {NOTE,normalizeItems,filterItems,heatText} from './feed-utils.js?v=11';
 const $=s=>document.querySelector(s);const storage={get(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 const channel='photo',category='全部';
