@@ -129,8 +129,11 @@ function render(){
  renderGenerationProgress();
  $('#personalService').textContent=state.configured?state.imageModel+' · '+state.reasonModel+' · GRsai':'生图服务暂未配置';
 }
+const workspaceTabs=['showInspiration','showWorks','savedButton'];
+const workspaceKey='ootd-active-workspace';
 function selectWorkspace(activeId){
- for(const id of ['showInspiration','showWorks','savedButton']){
+ try{sessionStorage.setItem(workspaceKey,activeId)}catch{}
+ for(const id of workspaceTabs){
   const button=$('#'+id);
   button.classList.toggle('active',id===activeId);
   button.setAttribute('aria-pressed',String(id===activeId));
@@ -272,5 +275,12 @@ export function initPersonal(){
  $('#deleteIdentity').onclick=()=>{if(confirm('删除原始照片、形象参考及所有生成记录？此操作无法恢复。'))action(()=>api('/delete',{}))};
  window.addEventListener('ootd:make-same',e=>{pendingReference=e.detail;$('#continueSame').hidden=false;generate(e.detail)});
  dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
- refresh();setInterval(()=>{if(dialog.open||state.jobs.some(j=>!terminal.has(j.status)))refresh()},5000)
+ let activeId='showInspiration';
+ try{
+  const savedId=sessionStorage.getItem(workspaceKey);
+  if(workspaceTabs.includes(savedId))activeId=savedId;
+ }catch{}
+ selectWorkspace(activeId);
+ refresh();setInterval(()=>{if(dialog.open||state.jobs.some(j=>!terminal.has(j.status)))refresh()},5000);
+ return activeId;
 }
