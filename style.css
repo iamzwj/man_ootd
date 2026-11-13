@@ -110,3 +110,13 @@
 
 #largeImage,#personalPreviewImage{touch-action:none}
 .viewer-image,.personal-preview{overflow:hidden}
+
+.work-card-actions .work-download,.work-result>.work-download{display:none}
+@media (hover:hover) and (pointer:fine) and (min-width:601px){
+ .work-result>.work-download{
+  position:absolute;top:10px;right:10px;display:inline-flex;align-items:center;
+  min-height:36px;padding:6px 12px;border-radius:18px;background:#20231fdb;
+  color:#fff;font-size:13px;text-decoration:none;opacity:0;pointer-events:none;
+ }
+ .work-result:hover>.work-download,.work-result>.work-download:focus-visible{opacity:1;pointer-events:auto}
+}

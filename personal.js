@@ -172,14 +172,14 @@ function renderWorks(){
    const actions=node('div',null,'work-card-actions');
    const download=node('a','下载图片','work-download');
    download.href=s.asset;download.download='ootd-'+j.id+'-'+s.key+'.jpg';
-   const regenerate=node('button','重新生成','work-regenerate');
+   const regenerate=node('button','重新生成，再来一张','work-regenerate');
    regenerate.type='button';
    regenerate.onclick=async()=>{
     regenerate.disabled=true;
     try{await generate(null,{sourceJob:j.id,slot:s.key})}
     finally{regenerate.disabled=false}
    };
-   actions.append(download,regenerate);card.append(actions);
+   actions.append(regenerate);card.append(download,actions);
   }
   list.append(card);
  }}
