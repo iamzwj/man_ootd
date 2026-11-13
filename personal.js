@@ -277,7 +277,7 @@ async function generate(reference,source=null){
  }
 }
 export function initPersonal(){
- const actions=node('div',null,'works-actions');$('#worksIdentity').before(actions);actions.append($('#worksIdentity'));
+ const actions=node('div',null,'works-actions');$('#worksPane .works-heading').append(actions);
  const select=node('button','选择删除','secondary');select.id='worksSelect';select.type='button';select.hidden=true;actions.prepend(select);
  const selection=node('div',null,'works-selection');selection.id='worksSelection';selection.hidden=true;
  const count=node('span');count.id='worksSelectionCount';count.setAttribute('role','status');
@@ -295,7 +295,7 @@ export function initPersonal(){
  $('#emailLoginForm').onsubmit=async e=>{e.preventDefault();if(authBusy)return;authBusy=true;$('#verifyEmail').disabled=true;message('正在验证…');try{await api('/auth/verify',{email:$('#loginEmail').value,code:$('#loginCode').value});$('#loginCode').value='';await refresh();open();message('登录成功');if(pendingAction&&Object.keys(state.profile.views||{}).length===4){const next=pendingAction;pendingAction=null;await generate(next.reference)}}catch(error){message(error.message)}finally{authBusy=false;$('#verifyEmail').disabled=false}};
  $('#logoutEmail').onclick=()=>action(async()=>{await api('/auth/logout',{});state={authenticated:false,profile:{photos:[],views:{}},jobs:[]};pendingAction=null;$('#loginCode').value='';message('已退出登录')});
  function updateResend(){const seconds=Math.max(0,Math.ceil((resendUntil-Date.now())/1000));$('#sendEmailCode').disabled=authBusy||seconds>0;$('#sendEmailCode').textContent=seconds?seconds+' 秒后重发':'获取验证码'}setInterval(updateResend,1000);
- $('#showWorks').onclick=()=>{showWorks();refresh()};$('#savedButton').onclick=()=>{showInspiration('saved');window.scrollTo({top:0,behavior:'instant'})};$('#showInspiration').onclick=()=>showInspiration();$('#worksIdentity').onclick=()=>{open();refresh()};
+ $('#showWorks').onclick=()=>{showWorks();refresh()};$('#savedButton').onclick=()=>{showInspiration('saved');window.scrollTo({top:0,behavior:'instant'})};$('#showInspiration').onclick=()=>showInspiration();
  $('#personalButton').onclick=()=>{open();refresh()};$('#closePersonal').onclick=()=>dialog.close();$('#profileTab').onclick=()=>open();$('#historyTab').onclick=()=>open('history');
  $('#identityUpload').onchange=()=>action(async()=>{const files=[...$('#identityUpload').files];if(!files.length)return;if(files.length+state.profile.photos.length>12)throw Error('最多上传 12 张照片');message('正在处理和上传照片…');const photos=[];for(const f of files)photos.push(await compressed(f));await api('/upload',{photos});$('#identityUpload').value='';message('照片已保存，点击整理形象库开始分析。')});
  $('#profileBuild').onclick=()=>action(async()=>{await api('/generate',{kind:'profile',requestKey:crypto.randomUUID()});open('history')});

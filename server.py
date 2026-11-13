@@ -335,8 +335,8 @@ PHOTO_QUERIES = {
  '黑白情绪': ['black and white man portrait photography', 'male monochrome cinematic portrait', '男生 黑白 情绪 写真'],
  **TOPICS['photo']}
 REVIEW_POLICY='domestic-clothed-v6'
-PROVIDERS = ['360图片 · 国内作品', '必应 · 国内作品', '堆糖', '图虫', '图虫公开标签', 'ELLEMEN公开作品']
-DOMESTIC_DOMAINS=('douyin.com','xiaohongshu.com','weibo.com','weibo.cn','zcool.com.cn','tuchong.com','poco.cn','duitang.com','ellemen.com','ellemen.com.cn','hearst.com.cn','gq.com.cn','vogue.com.cn','bazaarchina.com','sohu.com','sina.com.cn','sina.cn','baidu.com','163.com','qq.com')
+PROVIDERS = ['360 图片', '摄影社区搜索', '堆糖', '图虫', '图虫公开标签', 'ELLEMEN公开作品']
+DOMESTIC_DOMAINS=('douyin.com','xiaohongshu.com','weibo.com','weibo.cn','zcool.com.cn','tuchong.com','poco.cn','mipai.com.cn','duitang.com','ellemen.com','ellemen.com.cn','hearst.com.cn','gq.com.cn','vogue.com.cn','bazaarchina.com','sohu.com','sina.com.cn','sina.cn','baidu.com','163.com','qq.com')
 def domestic_source(url):
  try:
   host=(urlparse(url).hostname or '').lower()
@@ -372,7 +372,7 @@ def photography_item(image,page,caption,category,provider,width=None,height=None
  if re.search(r'nude|naked|shirtless|underwear|lingerie|色情|裸|赤膊|内裤|内衣|泳装|泳裤|腹肌|肌肉|AI.generated|AI.image|AI生成|插画|动漫|cartoon|illustration|prompt|midjourney',caption+' '+page,re.I):return None
  if isinstance(width,(int,float)) and isinstance(height,(int,float)) and (min(width,height)<280 or not .45<=width/height<=1.9):return None
  host=(urlparse(page).hostname or '').removeprefix('www.')
- label=next((label for domain,label in [('pinterest.com','Pinterest'),('pexels.com','Pexels'),('unsplash.com','Unsplash'),('pixabay.com','Pixabay'),('flickr.com','Flickr'),('tuchong.com','图虫'),('duitang.com','堆糖'),('poco.cn','POCO'),('weibo.com','微博'),('xiaohongshu.com','小红书'),('douyin.com','抖音')] if host==domain or host.endswith('.'+domain)),host)
+ label=next((label for domain,label in [('pinterest.com','Pinterest'),('pexels.com','Pexels'),('unsplash.com','Unsplash'),('pixabay.com','Pixabay'),('flickr.com','Flickr'),('tuchong.com','图虫'),('duitang.com','堆糖'),('poco.cn','POCO'),('mipai.com.cn','米拍'),('zcool.com.cn','站酷'),('weibo.com','微博'),('xiaohongshu.com','小红书'),('douyin.com','抖音')] if host==domain or host.endswith('.'+domain)),host)
  uid=identity(image)
  return {'id':uid,'imageKey':uid,'image':image,'originalImage':image,'url':page,'source':label,'discoveryProvider':provider,
   'originalTitle':html.unescape(caption)[:1000],'title':category+' · 氛围摄影','channel':'photo','category':category,
@@ -464,12 +464,12 @@ def ellemen_photos(category,cursor):
 def bing_photos(category,cursor):
  cats=list(SO_QUERIES) if category=='全部' else [category];cat=cats[cursor%len(cats)];cycle=cursor//len(cats);terms=SO_QUERIES[cat];query=terms[cycle%len(terms)];page=cycle//len(terms)+1
  def fetch():
-  params=urlencode({'q':'国内 男生 氛围感 摄影 '+query+' (site:tuchong.com OR site:zcool.com.cn OR site:douyin.com OR site:xiaohongshu.com OR site:ellemen.com)','first':(page-1)*35,'count':35,'mkt':'zh-CN','adlt':'strict'},quote_via=quote)
+  params=urlencode({'q':'男生 人像 写真 '+query+' (site:tuchong.com OR site:zcool.com.cn OR site:poco.cn OR site:mipai.com.cn)','first':(page-1)*35,'count':35,'mkt':'zh-CN','adlt':'strict'},quote_via=quote)
   text=read_public('https://www.bing.com/images/async?'+params).decode('utf-8','replace')
   candidates=parse_bing(text,cat)
   if not candidates and re.search(r'captcha|verify you|challenge',text,re.I):raise ValueError('search verification')
   return screen_photography(candidates)
- return public_cached(('bing-domestic-v6',cat,query,page),fetch)
+ return public_cached(('bing-portrait-v7',cat,query,page),fetch)
 
 
 def parse_flickr(text,category):
@@ -517,7 +517,8 @@ def screen_photography(rows):
   if not ok or not domestic_source(p.get('url','')):continue
   meta=dict(visual_filter.metadata(p['image']));fingerprint=meta.pop('fingerprint',None)
   if fingerprint in REJECTED_FINGERPRINTS:continue
-  result.append({**p,**meta,'visualChecked':True,'reviewed':True,'reviewState':'automated-screened','aestheticVersion':REVIEW_POLICY,'region':'国内来源','screening':'adult-male-clothed-clip','screeningVersion':REVIEW_POLICY,**({'fingerprint':fingerprint,'id':'photo-'+fingerprint,'imageKey':'photo-'+fingerprint} if fingerprint else {})})
+  photo_id='photo-'+fingerprint if fingerprint else p['id']
+  result.append({**p,**meta,'visualChecked':True,'reviewed':True,'reviewState':'automated-screened','aestheticVersion':REVIEW_POLICY,'screening':'adult-male-clothed-clip','screeningVersion':REVIEW_POLICY,'id':photo_id,'imageKey':photo_id,**({'fingerprint':fingerprint} if fingerprint else {})})
  return result
 
 
@@ -531,7 +532,9 @@ except (OSError,ValueError,TypeError):pass
 
 
 def approved_photo(p):
- return bool(p.get('reviewed') and p.get('aestheticVersion')==REVIEW_POLICY and p.get('visualChecked') and domestic_source(p.get('url','')))
+ if not (p.get('reviewed') and p.get('aestheticVersion')==REVIEW_POLICY and p.get('visualChecked')):return False
+ url=p.get('url','')
+ return domestic_source(url)
 
 
 def catalog_rows(category):
@@ -566,7 +569,7 @@ def discover(channel,category,cursor,exclude=None):
  if channel!='photo':raise ValueError('photography only')
  def collect(fn,args):
   rows,ok=fn(*args);remember_photos(rows);return rows,ok
- specs=[('ELLEMEN公开作品',ellemen_photos,(category,cursor)),('360图片 · 国内作品',so_photos,(category,cursor)),('必应 · 国内作品',bing_photos,(category,cursor))]
+ specs=[('ELLEMEN公开作品',ellemen_photos,(category,cursor)),('360 图片',so_photos,(category,cursor)),('摄影社区搜索',bing_photos,(category,cursor))]
  if category in TOPICS['photo'] or category=='全部':
   specs += [('堆糖',duitang,(j,cursor)) for j in plan('photo',category,cursor)]
   specs += [('图虫',tuchong,('photo',category,cursor))]
@@ -584,7 +587,8 @@ def discover(channel,category,cursor,exclude=None):
    else:scheduled=False
   for key in list(ACTIVE_SEARCHES):
    if len(ACTIVE_SEARCHES)>96 and ACTIVE_SEARCHES[key].done():del ACTIVE_SEARCHES[key]
- existing=([p for p in catalog_rows(category) if p['id'] not in exclude][:24] if exclude is not None else seed_photos(category,cursor))
+ catalog=catalog_rows(category)
+ existing=([p for p in catalog if p['id'] not in exclude][:24] if exclude is not None else catalog[cursor*24:(cursor+1)*24])
  done,pending=cf.wait(tasks,timeout=.15 if existing else 28) if tasks else (set(),set())
  result={p['id']:p for p in existing};statuses={name:{'name':name,'available':False,'state':'fetching'} for name,_,_ in specs}
  for f in done:
@@ -600,8 +604,8 @@ def discover(channel,category,cursor,exclude=None):
  rows=([p for p in catalog if p['id'] not in exclude][:24] if exclude is not None else list(result.values()))
  # The scroll feed must revisit a page if the worker limit prevented scheduling a source.
  next_cursor=cursor+1 if scheduled or exclude is None else cursor
- return {'items':rows,'nextCursor':next_cursor,'hasMore':True,'sourceAvailable':True,'searchAvailable':any(s['available'] for s in statuses.values()),
-  'sources':list(statuses.values()),'catalogCount':len(catalog),'photographerCount':len({p.get('sourceId') or p.get('source') for p in catalog_rows('全部')}),
+ return {'items':rows,'nextCursor':next_cursor,'hasMore':bool(specs) or len(rows)==24,'sourceAvailable':True,'searchAvailable':any(s['available'] for s in statuses.values()),
+  'sources':list(statuses.values()),'catalogCount':len(catalog),'photographerCount':len({p.get('sourceId') or p.get('source') for p in catalog}),
   'mode':'live','checkedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
 
 class Handler(BaseHTTPRequestHandler):
